@@ -18,11 +18,15 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.font.Font
+import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.approomiematchu.R
 import com.example.approomiematchu.ui.theme.RoomieMatchUTheme
 
 @Composable
@@ -30,7 +34,7 @@ fun AuthScreen(initialIsLogin: Boolean = true) {
     var isLoginSelected by remember { mutableStateOf(initialIsLogin) }
 
 
-    Box( // 👈 Box raíz con fondo
+    Box(
         modifier = Modifier
             .fillMaxSize()
             .background(MaterialTheme.colorScheme.background)
@@ -78,6 +82,7 @@ fun AuthHeader(
             Text(
                 text = "Iniciar Sesión",
                 fontSize = 18.sp,
+                fontFamily = FontFamily(Font(R.font.nunito_black)),
                 color = if (isLoginSelected) MaterialTheme.colorScheme.primary
                 else MaterialTheme.colorScheme.secondary
             )
@@ -98,6 +103,7 @@ fun AuthHeader(
             Text(
                 text = "Registrarse",
                 fontSize = 18.sp,
+                fontFamily = FontFamily(Font(R.font.nunito_black)),
                 color = if (!isLoginSelected) MaterialTheme.colorScheme.primary
                 else MaterialTheme.colorScheme.secondary
             )
@@ -130,6 +136,7 @@ fun AuthTextField(
         Text(
             text = title,
             fontSize = 14.sp,
+            fontFamily = FontFamily(Font(R.font.nunito_black)),
             color = MaterialTheme.colorScheme.onSurface
         )
         Spacer(Modifier.height(8.dp))
@@ -138,7 +145,8 @@ fun AuthTextField(
             value = value,
             onValueChange = onValueChange,
             singleLine = true,
-            placeholder = { Text(placeholder) },
+            textStyle = TextStyle(fontFamily = FontFamily(Font(R.font.nunito_semi_bold))),
+            placeholder = { Text(placeholder, style = TextStyle(fontFamily = FontFamily(Font(R.font.nunito_semi_bold))))},
             leadingIcon = leadingIcon,
             trailingIcon = {
                 if (isPassword) {
@@ -146,7 +154,7 @@ fun AuthTextField(
                         Icon(
                             imageVector = if (passwordVisible) Icons.Filled.Visibility else Icons.Filled.VisibilityOff,
                             contentDescription = if (passwordVisible) "Ocultar contraseña" else "Mostrar contraseña",
-                            tint = MaterialTheme.colorScheme.secondary // 👈 color del ojo
+                            tint = MaterialTheme.colorScheme.secondary
                         )
                     }
                 } else {
@@ -197,7 +205,9 @@ fun LoginForm() {
             contentAlignment = Alignment.CenterEnd
         ) {
             TextButton(onClick = { /* sin lógica */ }) {
-                Text("¿Olvidaste la contraseña?", color = MaterialTheme.colorScheme.secondary)
+                Text("¿Olvidaste la contraseña?",
+                    fontFamily = FontFamily(Font(R.font.nunito_black)),
+                    color = MaterialTheme.colorScheme.secondary)
             }
         }
 
@@ -209,7 +219,9 @@ fun LoginForm() {
             shape = RoundedCornerShape(12.dp),
             colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
         ) {
-            Text("INICIAR SESIÓN", color = MaterialTheme.colorScheme.onPrimary)
+            Text("INICIAR SESIÓN",
+                fontFamily = FontFamily(Font(R.font.nunito_black)),
+                color = MaterialTheme.colorScheme.onPrimary)
         }
     }
 }
@@ -272,7 +284,9 @@ fun RegisterForm() {
             shape = RoundedCornerShape(12.dp),
             colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
         ) {
-            Text("REGISTRARSE", color = MaterialTheme.colorScheme.onPrimary)
+            Text("REGISTRARSE",
+                fontFamily = FontFamily(Font(R.font.nunito_black)),
+                color = MaterialTheme.colorScheme.onPrimary)
         }
     }
 }
