@@ -21,12 +21,14 @@ import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.navigation.NavController
 import com.example.approomiematchu.R
+import com.example.approomiematchu.navigation.AppScreens
 import com.example.approomiematchu.ui.theme.AppTypography
 import com.example.approomiematchu.ui.theme.RoomieMatchUTheme
 
 @Composable
-fun AuthScreen(initialIsLogin: Boolean = true) {
+fun AuthScreen(initialIsLogin: Boolean = true, navController: NavController) {
     var isLoginSelected by remember { mutableStateOf(initialIsLogin) }
 
     Box(modifier = Modifier.fillMaxSize()) {
@@ -55,7 +57,7 @@ fun AuthScreen(initialIsLogin: Boolean = true) {
             )
             Spacer(Modifier.height(32.dp))
             if (isLoginSelected) {
-                LoginForm()
+                LoginForm(navController)
             } else {
                 RegisterForm()
             }
@@ -173,7 +175,7 @@ fun AuthTextField(
 }
 
 @Composable
-fun LoginForm() {
+fun LoginForm(navController: NavController) {
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
     var errorMessage by remember { mutableStateOf<String?>(null) }
@@ -200,7 +202,7 @@ fun LoginForm() {
             modifier = Modifier.fillMaxWidth(),
             contentAlignment = Alignment.CenterEnd
         ) {
-            TextButton(onClick = { /* sin lógica */ }) {
+            TextButton(onClick = { navController.navigate(AppScreens.EnterEmail.route)  }) {
                 Text(
                     "¿Olvidaste la contraseña?",
                     style = AppTypography.subtitulo,
@@ -293,6 +295,7 @@ fun RegisterForm() {
     }
 }
 
+/*
 @Preview(showBackground = true, widthDp = 360, heightDp = 800)
 @Composable
 fun LoginPreview() {
@@ -308,3 +311,4 @@ fun RegisterPreview() {
         AuthScreen(initialIsLogin = false)
     }
 }
+ */

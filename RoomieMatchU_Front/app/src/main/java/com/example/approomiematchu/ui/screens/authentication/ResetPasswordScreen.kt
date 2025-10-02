@@ -16,13 +16,15 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.navigation.NavController
 import com.example.approomiematchu.R
+import com.example.approomiematchu.navigation.AppScreens
 import com.example.approomiematchu.ui.screens.AuthTextField
 import com.example.approomiematchu.ui.theme.AppTypography
 
 // --- Pantalla de ingresar correo
 @Composable
-fun EnterEmailScreen() {
+fun EnterEmailScreen(navController: NavController) {
     var email by remember { mutableStateOf("") }
 
     CommonResetPasswordBackground {
@@ -47,7 +49,7 @@ fun EnterEmailScreen() {
         Spacer(Modifier.height(24.dp))
 
         Button(
-            onClick = { /* Acción de enviar código */ },
+            onClick = {  navController.navigate(AppScreens.EnterCode.route) },
             modifier = Modifier.fillMaxWidth(),
             shape = RoundedCornerShape(50.dp),
             colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
@@ -59,7 +61,7 @@ fun EnterEmailScreen() {
 
 // --- Pantalla de ingresar código
 @Composable
-fun EnterCodeScreen() {
+fun EnterCodeScreen(navController: NavController) {
     var code by remember { mutableStateOf("") }
 
     CommonResetPasswordBackground {
@@ -84,7 +86,7 @@ fun EnterCodeScreen() {
         Spacer(Modifier.height(24.dp))
 
         Button(
-            onClick = { /* Acción de validar código */ },
+            onClick = { navController.navigate(AppScreens.NewPassword.route)     },
             modifier = Modifier.fillMaxWidth(),
             shape = RoundedCornerShape(50.dp),
             colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
@@ -96,7 +98,7 @@ fun EnterCodeScreen() {
 
 // --- Pantalla de nueva contraseña
 @Composable
-fun NewPasswordScreen() {
+fun NewPasswordScreen(navController: NavController) {
     var password by remember { mutableStateOf("") }
     var confirmPassword by remember { mutableStateOf("") }
 
@@ -143,7 +145,13 @@ fun NewPasswordScreen() {
         Spacer(Modifier.height(24.dp))
 
         Button(
-            onClick = { /* Acción de restablecer contraseña */ },
+            onClick = {
+                navController.navigate(
+                    AppScreens.AuthScreen.createRoute(startInLogin = true)
+                ) {
+                    popUpTo(AppScreens.AuthScreen.route) { inclusive = true }
+                }
+            },
             modifier = Modifier.fillMaxWidth(),
             shape = RoundedCornerShape(50.dp),
             colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
@@ -176,6 +184,7 @@ fun CommonResetPasswordBackground(content: @Composable ColumnScope.() -> Unit) {
     }
 }
 
+/*
 @Preview(showBackground = true, showSystemUi = true)
 @Composable
 fun PreviewEnterEmailScreen() {
@@ -193,3 +202,5 @@ fun PreviewEnterCodeScreen() {
 fun PreviewNewPasswordScreen() {
     NewPasswordScreen()
 }
+
+ */

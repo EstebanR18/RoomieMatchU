@@ -9,6 +9,9 @@ import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.example.approomiematchu.ui.screens.AuthScreen
 import com.example.approomiematchu.ui.screens.HomeScreen
+import com.example.approomiematchu.ui.screens.authentication.EnterCodeScreen
+import com.example.approomiematchu.ui.screens.authentication.EnterEmailScreen
+import com.example.approomiematchu.ui.screens.authentication.NewPasswordScreen
 
 
 @Composable
@@ -30,7 +33,19 @@ fun AppNavigation(modifier: Modifier = Modifier) {
             arguments = listOf(navArgument("startInLogin") { type = NavType.BoolType })
         ) { backStackEntry ->
             val startInLogin = backStackEntry.arguments?.getBoolean("startInLogin") ?: true
-            AuthScreen(initialIsLogin = startInLogin)
+            AuthScreen(initialIsLogin = startInLogin, navController = navController)
+        }
+
+        composable(AppScreens.EnterEmail.route) {
+            EnterEmailScreen(navController)
+        }
+
+        composable(AppScreens.EnterCode.route) {
+            EnterCodeScreen(navController)
+        }
+
+        composable(AppScreens.NewPassword.route) {
+            NewPasswordScreen(navController)
         }
 
     }

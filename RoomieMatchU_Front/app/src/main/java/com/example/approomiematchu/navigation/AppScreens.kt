@@ -9,4 +9,8 @@ sealed class AppScreens(val route: String) {
 
     }
 
+    object EnterEmail : AppScreens("enter_email")
+    object EnterCode : AppScreens("enter_code")
+    object NewPassword : AppScreens("new_password")
+
 }
