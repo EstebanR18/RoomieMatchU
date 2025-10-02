@@ -7,12 +7,11 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
-import com.example.approomiematchu.ui.screens.AuthScreen
-import com.example.approomiematchu.ui.screens.HomeScreen
-import com.example.approomiematchu.ui.screens.authentication.EnterCodeScreen
-import com.example.approomiematchu.ui.screens.authentication.EnterEmailScreen
-import com.example.approomiematchu.ui.screens.authentication.NewPasswordScreen
-
+import com.example.approomiematchu.ui.authentication.AuthScreen
+import com.example.approomiematchu.ui.LandingScreen
+import com.example.approomiematchu.ui.authentication.EnterCodeScreen
+import com.example.approomiematchu.ui.authentication.EnterEmailScreen
+import com.example.approomiematchu.ui.authentication.NewPasswordScreen
 
 @Composable
 fun AppNavigation(modifier: Modifier = Modifier) {
@@ -20,11 +19,11 @@ fun AppNavigation(modifier: Modifier = Modifier) {
 
     NavHost(
         navController = navController,
-        startDestination = AppScreens.HomeScreen.route
+        startDestination = AppScreens.LandingScreen.route
     ) {
         // Pantalla de inicio
-        composable(AppScreens.HomeScreen.route) {
-            HomeScreen(navController = navController)
+        composable(AppScreens.LandingScreen.route) {
+            LandingScreen(navController = navController)
         }
 
         // Pantalla de autenticación con argumento
