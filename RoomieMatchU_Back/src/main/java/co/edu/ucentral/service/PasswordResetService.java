@@ -21,9 +21,11 @@ public class PasswordResetService {
     @Inject
     PasswordResetTokenRepository tokenRepository;
 
-    // Paso 1: solicitar código
     @Transactional
     public String requestPasswordReset(String correo) {
+        // 1. Limpiar tokens viejos antes de crear uno nuevo
+        tokenRepository.deleteExpiredTokens();
+
         UserEntity user = userRepository.findByCorreo(correo);
         if (user == null) {
             throw new RuntimeException("Correo no registrado");
@@ -40,19 +42,36 @@ public class PasswordResetService {
 
         tokenRepository.persist(resetToken);
 
-        // TODO: enviar por correo, por ahora devolver en respuesta
-        return token;
+        return token; // más adelante lo enviaremos por correo
     }
 
-    // Paso 2: cambiar contraseña
-    @Transactional
-    public void resetPassword(String correo, String token, String newPassword) {
-        PasswordResetTokenEntity resetToken = tokenRepository.findValidToken(correo, token);
 
+    public boolean validateToken(String correo, String token) {
+        PasswordResetTokenEntity resetToken =
+                tokenRepository.findValidToken(correo, token);
+
+        if (resetToken == null) {
+            return false;
+        }
+        return true;
+    }
+
+
+    @Transactional
+    public void resetPassword(String correo, String token, String newPassword, String confirmPassword) {
+
+        // Validar coincidencia de contraseñas
+        if (newPassword == null || confirmPassword == null || !newPassword.equals(confirmPassword)) {
+            throw new RuntimeException("Las contraseñas no coinciden");
+        }
+
+        // Validar token
+        PasswordResetTokenEntity resetToken = tokenRepository.findValidToken(correo, token);
         if (resetToken == null) {
             throw new RuntimeException("Código incorrecto o vencido");
         }
 
+        // Validar requisitos de contraseña
         if (!newPassword.matches("^(?=.*[A-Z])(?=.*[a-z])(?=.*\\d)(?=.*[@$!%*?&])[A-Za-z\\d@$!%*?&]{8,}$")) {
             throw new RuntimeException("La contraseña no cumple requisitos de seguridad");
         }
@@ -62,14 +81,13 @@ public class PasswordResetService {
             throw new RuntimeException("Correo no registrado");
         }
 
-        // Hashear nueva contraseña
+        // Hashear y guardar
         String hash = BCrypt.withDefaults().hashToString(12, newPassword.toCharArray());
         user.setPasswordHash(hash);
-
-        // Actualizar usuario
         userRepository.persist(user);
 
-        // Invalida el token (lo borramos)
+        // Eliminar token usado
         tokenRepository.delete(resetToken);
     }
+
 }
