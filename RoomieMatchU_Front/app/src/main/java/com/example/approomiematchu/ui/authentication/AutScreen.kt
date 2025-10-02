@@ -46,6 +46,7 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import com.example.approomiematchu.R
 import com.example.approomiematchu.navigation.AppScreens
@@ -83,7 +84,7 @@ fun AuthScreen(initialIsLogin: Boolean = true, navController: NavController) {
             if (isLoginSelected) {
                 LoginForm(navController)
             } else {
-                RegisterForm()
+                RegisterForm(navController)
             }
         }
     }
@@ -199,27 +200,40 @@ fun AuthTextField(
 }
 
 @Composable
-fun LoginForm(navController: NavController) {
-    var email by remember { mutableStateOf("") }
-    var password by remember { mutableStateOf("") }
-    var errorMessage by remember { mutableStateOf<String?>(null) }
+fun LoginForm(navController: NavController, viewModel: AuthViewModel = viewModel()) {
+    val email by viewModel.email
+    val password by viewModel.password
+    val errorMessage by viewModel.errorMessage
+    val isLoading by viewModel.isLoading
 
     Column(modifier = Modifier.fillMaxWidth()) {
         AuthTextField(
             title = "Correo electrónico",
             value = email,
-            onValueChange = { email = it },
+            onValueChange = { viewModel.email.value = it },
             placeholder = "Ingrese correo",
-            leadingIcon = { Icon(Icons.Filled.Email, contentDescription = null, tint = MaterialTheme.colorScheme.primary) }
+            leadingIcon = {
+                Icon(
+                    Icons.Filled.Email,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.primary
+                )
+            }
         )
         Spacer(Modifier.height(10.dp))
         AuthTextField(
             title = "Contraseña",
             value = password,
-            onValueChange = { password = it },
+            onValueChange = { viewModel.password.value = it },
             placeholder = "Ingrese contraseña",
             isPassword = true,
-            leadingIcon = { Icon(Icons.Filled.Lock, contentDescription = null, tint = MaterialTheme.colorScheme.primary) }
+            leadingIcon = {
+                Icon(
+                    Icons.Filled.Lock,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.primary
+                )
+            }
         )
         Spacer(Modifier.height(8.dp))
         Box(
@@ -234,25 +248,27 @@ fun LoginForm(navController: NavController) {
                 )
             }
         }
-        errorMessage?.let {
-            Spacer(Modifier.height(10.dp))
+        if (errorMessage != null) {
             Text(
-                text = it,
+                text = errorMessage!!,
                 color = MaterialTheme.colorScheme.secondary,
-                style = AppTypography.subtitulo,
                 modifier = Modifier.fillMaxWidth(),
-                textAlign = TextAlign.Center,
+                textAlign = TextAlign.Center
             )
         }
         Spacer(Modifier.height(16.dp))
         Button(
-            onClick = { /* solo UI */ },
+            onClick = {
+                viewModel.login {
+                    navController.navigate(AppScreens.ProfileScreen.route)
+                }
+            },
             modifier = Modifier.fillMaxWidth(),
             shape = RoundedCornerShape(50.dp),
-            colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
+            enabled = !isLoading
         ) {
             Text(
-                "INICIAR SESIÓN",
+                if (isLoading) "Cargando..." else "INICIAR SESIÓN",
                 style = AppTypography.titulo2,
                 color = MaterialTheme.colorScheme.onPrimary
             )
@@ -261,20 +277,24 @@ fun LoginForm(navController: NavController) {
 }
 
 @Composable
-fun RegisterForm() {
-    var fullName by remember { mutableStateOf("") }      // Nombre completo
-    var username by remember { mutableStateOf("") }      // Usuario
-    var phone by remember { mutableStateOf("") }         // Teléfono
-    var email by remember { mutableStateOf("") }
-    var password by remember { mutableStateOf("") }
-    var errorMessage by remember { mutableStateOf<String?>(null) }
+fun RegisterForm(
+    navController: NavController,
+    viewModel: AuthViewModel = viewModel()
+) {
+    val fullName by viewModel.fullName
+    val username by viewModel.username
+    val phone by viewModel.phone
+    val email by viewModel.email
+    val password by viewModel.password
+    val errorMessage by viewModel.errorMessage
+    val isLoading by viewModel.isLoading
 
     Column(modifier = Modifier.fillMaxWidth()) {
 
         AuthTextField(
             title = "Nombre completo",
             value = fullName,
-            onValueChange = { fullName = it },
+            onValueChange = { viewModel.fullName.value = it },
             placeholder = "Ingrese nombre completo",
             leadingIcon = {
                 Icon(
@@ -284,42 +304,13 @@ fun RegisterForm() {
                 )
             }
         )
-        Spacer(Modifier.height(10.dp))
 
-        AuthTextField(
-            title = "Usuario",
-            value = username,
-            onValueChange = { username = it },
-            placeholder = "Ingrese nombre de usuario",
-            leadingIcon = {
-                Icon(
-                    Icons.Filled.Person,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.primary
-                )
-            }
-        )
-        Spacer(Modifier.height(10.dp))
-
-        AuthTextField(
-            title = "Teléfono",
-            value = phone,
-            onValueChange = { phone = it },
-            placeholder = "Ingrese número de teléfono",
-            leadingIcon = {
-                Icon(
-                    Icons.Filled.Phone,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.primary
-                )
-            }
-        )
         Spacer(Modifier.height(10.dp))
 
         AuthTextField(
             title = "Correo electrónico",
             value = email,
-            onValueChange = { email = it },
+            onValueChange = { viewModel.email.value = it },
             placeholder = "Ingrese correo",
             leadingIcon = {
                 Icon(
@@ -329,12 +320,45 @@ fun RegisterForm() {
                 )
             }
         )
+
+        Spacer(Modifier.height(10.dp))
+
+        AuthTextField(
+            title = "Teléfono",
+            value = phone,
+            onValueChange = { viewModel.phone.value = it },
+            placeholder = "Ingrese número de teléfono",
+            leadingIcon = {
+                Icon(
+                    Icons.Filled.Phone,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.primary
+                )
+            }
+        )
+
+        Spacer(Modifier.height(10.dp))
+
+        AuthTextField(
+            title = "Usuario",
+            value = username,
+            onValueChange = { viewModel.username.value = it },
+            placeholder = "Ingrese nombre de usuario",
+            leadingIcon = {
+                Icon(
+                    Icons.Filled.Person,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.primary
+                )
+            }
+        )
+
         Spacer(Modifier.height(10.dp))
 
         AuthTextField(
             title = "Contraseña",
             value = password,
-            onValueChange = { password = it },
+            onValueChange = { viewModel.password.value = it },
             placeholder = "Ingrese contraseña",
             isPassword = true,
             leadingIcon = {
@@ -360,13 +384,18 @@ fun RegisterForm() {
         Spacer(Modifier.height(24.dp))
 
         Button(
-            onClick = { /* solo UI */ },
+            onClick = {
+                viewModel.register {
+                    navController.navigate(AppScreens.ProfileScreen.route)
+                }
+            },
             modifier = Modifier.fillMaxWidth(),
             shape = RoundedCornerShape(50.dp),
-            colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
+            colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
+            enabled = !isLoading
         ) {
             Text(
-                "REGISTRARSE",
+                if (isLoading) "Cargando..." else "REGISTRARSE",
                 style = AppTypography.titulo2,
                 color = MaterialTheme.colorScheme.onPrimary
             )
