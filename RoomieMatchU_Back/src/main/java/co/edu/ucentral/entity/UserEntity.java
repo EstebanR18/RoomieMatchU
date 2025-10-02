@@ -16,7 +16,7 @@ public class UserEntity extends PanacheEntityBase {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
- //
+
     @Column(nullable = false)
     private String nombreCompleto;
 
@@ -31,4 +31,19 @@ public class UserEntity extends PanacheEntityBase {
 
     @Column(nullable = false)
     private String passwordHash;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "perfil_tipo")
+    private PerfilTipo perfilTipo;  // BUSCO_LUGAR o TENGO_LUGAR
+
+    @OneToOne(mappedBy = "user", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    private PerfilBuscoLugarEntity perfilBusco;
+
+    @OneToOne(mappedBy = "user", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    private PerfilTengoLugarEntity perfilTengo;
+
+    public enum PerfilTipo {
+        BUSCO_LUGAR,
+        TENGO_LUGAR
+    }
 }
