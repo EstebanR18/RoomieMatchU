@@ -1,4 +1,4 @@
-package com.example.approomiematchu.ui.screens
+package com.example.approomiematchu.ui.authentication
 
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background

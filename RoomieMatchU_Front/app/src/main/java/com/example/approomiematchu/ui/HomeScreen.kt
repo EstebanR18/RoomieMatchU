@@ -1,4 +1,4 @@
-package com.example.approomiematchu.ui.screens
+package com.example.approomiematchu.ui
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
@@ -13,6 +13,7 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
+import androidx.navigation.compose.rememberNavController
 import com.example.approomiematchu.R
 import com.example.approomiematchu.navigation.AppScreens
 import com.example.approomiematchu.ui.theme.AppTypography
@@ -114,6 +115,6 @@ fun HomeScreen(navController: NavController) {
 @Composable
 fun HomeScreenPreview() {
     RoomieMatchUTheme {
-        HomeScreen(navController = androidx.navigation.compose.rememberNavController())
+        HomeScreen(navController = rememberNavController())
     }
 }
