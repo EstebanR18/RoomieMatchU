@@ -14,8 +14,8 @@ private val LightColors = lightColorScheme(
     secondary = Orange,
     onSecondary = White,
     tertiary = Blue,
-    background = LightGray,
-    onBackground = Black,
+    background = White,
+    onBackground = DarkBlue,
     surface = LightGray,
     onSurface = DarkBlue
 )
@@ -47,6 +47,7 @@ fun RoomieMatchUTheme(
 
     MaterialTheme(
         colorScheme = colors,
+        typography = AppMaterialTypography,
         shapes = shapes,
         content = content
     )

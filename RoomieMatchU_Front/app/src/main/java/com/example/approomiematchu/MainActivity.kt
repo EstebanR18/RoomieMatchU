@@ -7,10 +7,12 @@ import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.tooling.preview.Preview
+import androidx.navigation.compose.NavHost
+import androidx.navigation.compose.composable
+import androidx.navigation.compose.rememberNavController
+import com.example.approomiematchu.ui.screens.AuthScreen
+import com.example.approomiematchu.ui.screens.HomeScreen
 import com.example.approomiematchu.ui.theme.RoomieMatchUTheme
 
 class MainActivity : ComponentActivity() {
@@ -19,31 +21,31 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
         setContent {
             RoomieMatchUTheme {
-                Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
-                    Greeting(
-                        name = "Android",
-                        modifier = Modifier.padding(innerPadding)
-                    )
+                val navController = rememberNavController()
+
+                Scaffold(
+                    modifier = Modifier.fillMaxSize()
+                ) { innerPadding ->
+                    NavHost(
+                        navController = navController,
+                        startDestination = "home",
+
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(innerPadding)
+                    ) {
+                        composable("home") {
+                            HomeScreen(navController)
+                        }
+                        composable("login") {
+                            AuthScreen(initialIsLogin = true)
+                        }
+                        composable("register") {
+                            AuthScreen(initialIsLogin = false)
+                        }
+                    }
                 }
             }
         }
-    }
-}
-
-// esto es una prueba
-
-@Composable
-fun Greeting(name: String, modifier: Modifier = Modifier) {
-    Text(
-        text = "Hello $name!",
-        modifier = modifier
-    )
-}
-
-@Preview(showBackground = true)
-@Composable
-fun GreetingPreview() {
-    RoomieMatchUTheme {
-        Greeting("Valentina")
     }
 }

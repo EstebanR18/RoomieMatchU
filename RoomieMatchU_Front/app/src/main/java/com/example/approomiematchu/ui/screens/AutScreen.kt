@@ -1,5 +1,6 @@
 package com.example.approomiematchu.ui.screens
 
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -8,43 +9,43 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Email
-import androidx.compose.material.icons.filled.Lock
-import androidx.compose.material.icons.filled.Person
-import androidx.compose.material.icons.filled.Phone
-import androidx.compose.material.icons.filled.Visibility
-import androidx.compose.material.icons.filled.VisibilityOff
+import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.text.TextStyle
-import androidx.compose.ui.text.font.Font
-import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import com.example.approomiematchu.R
+import com.example.approomiematchu.ui.theme.AppTypography
 import com.example.approomiematchu.ui.theme.RoomieMatchUTheme
 
 @Composable
 fun AuthScreen(initialIsLogin: Boolean = true) {
     var isLoginSelected by remember { mutableStateOf(initialIsLogin) }
 
+    Box(modifier = Modifier.fillMaxSize()) {
+        // Fondo
+        Image(
+            painter = painterResource(id = R.drawable.fondo_login),
+            contentDescription = "Fondo Login",
+            contentScale = ContentScale.Crop,
+            alignment = Alignment.TopCenter,
+            modifier = Modifier.fillMaxSize()
+        )
 
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(MaterialTheme.colorScheme.background)
-    ) {
-
+        // Formulario sobre el fondo
         Column(
             modifier = Modifier
                 .fillMaxSize()
                 .verticalScroll(rememberScrollState())
-                .padding(horizontal = 24.dp, vertical = 100.dp),
+                .padding(horizontal = 35.dp)
+                .padding(top = 250.dp), // Ajusta el inicio del formulario
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             AuthHeader(
@@ -52,9 +53,7 @@ fun AuthScreen(initialIsLogin: Boolean = true) {
                 onLoginClick = { isLoginSelected = true },
                 onRegisterClick = { isLoginSelected = false }
             )
-
             Spacer(Modifier.height(32.dp))
-
             if (isLoginSelected) {
                 LoginForm()
             } else {
@@ -63,7 +62,6 @@ fun AuthScreen(initialIsLogin: Boolean = true) {
         }
     }
 }
-
 
 @Composable
 fun AuthHeader(
@@ -81,8 +79,7 @@ fun AuthHeader(
         ) {
             Text(
                 text = "Iniciar Sesión",
-                fontSize = 18.sp,
-                fontFamily = FontFamily(Font(R.font.nunito_black)),
+                style = AppTypography.titulo2,
                 color = if (isLoginSelected) MaterialTheme.colorScheme.primary
                 else MaterialTheme.colorScheme.secondary
             )
@@ -102,8 +99,7 @@ fun AuthHeader(
         ) {
             Text(
                 text = "Registrarse",
-                fontSize = 18.sp,
-                fontFamily = FontFamily(Font(R.font.nunito_black)),
+                style = AppTypography.titulo2,
                 color = if (!isLoginSelected) MaterialTheme.colorScheme.primary
                 else MaterialTheme.colorScheme.secondary
             )
@@ -135,24 +131,23 @@ fun AuthTextField(
     Column(modifier = Modifier.fillMaxWidth()) {
         Text(
             text = title,
-            fontSize = 14.sp,
-            fontFamily = FontFamily(Font(R.font.nunito_black)),
+            style = AppTypography.subtitulo,
             color = MaterialTheme.colorScheme.onSurface
         )
-        Spacer(Modifier.height(8.dp))
-
+        Spacer(Modifier.height(6.dp))
         OutlinedTextField(
             value = value,
             onValueChange = onValueChange,
             singleLine = true,
-            textStyle = TextStyle(fontFamily = FontFamily(Font(R.font.nunito_semi_bold))),
-            placeholder = { Text(placeholder, style = TextStyle(fontFamily = FontFamily(Font(R.font.nunito_semi_bold))))},
+            textStyle = AppTypography.normalText,
+            placeholder = { Text(placeholder, style = AppTypography.normalText) },
             leadingIcon = leadingIcon,
             trailingIcon = {
                 if (isPassword) {
                     IconButton(onClick = { passwordVisible = !passwordVisible }) {
                         Icon(
-                            imageVector = if (passwordVisible) Icons.Filled.Visibility else Icons.Filled.VisibilityOff,
+                            imageVector = if (passwordVisible) Icons.Filled.Visibility
+                            else Icons.Filled.VisibilityOff,
                             contentDescription = if (passwordVisible) "Ocultar contraseña" else "Mostrar contraseña",
                             tint = MaterialTheme.colorScheme.secondary
                         )
@@ -162,11 +157,17 @@ fun AuthTextField(
                 }
             },
             visualTransformation = if (isPassword && !passwordVisible)
-                PasswordVisualTransformation()
-            else
-                VisualTransformation.None,
+                PasswordVisualTransformation() else VisualTransformation.None,
             keyboardOptions = keyboardOptions,
-            modifier = Modifier.fillMaxWidth()
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(50.dp),
+            shape = RoundedCornerShape(50),
+            colors = OutlinedTextFieldDefaults.colors(
+                focusedBorderColor = MaterialTheme.colorScheme.primary,
+                unfocusedBorderColor = MaterialTheme.colorScheme.primary,
+                cursorColor = MaterialTheme.colorScheme.primary
+            )
         )
     }
 }
@@ -175,6 +176,7 @@ fun AuthTextField(
 fun LoginForm() {
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
+    var errorMessage by remember { mutableStateOf<String?>(null) }
 
     Column(modifier = Modifier.fillMaxWidth()) {
         AuthTextField(
@@ -182,46 +184,52 @@ fun LoginForm() {
             value = email,
             onValueChange = { email = it },
             placeholder = "Ingrese correo",
-            leadingIcon = {
-                Icon(Icons.Filled.Email, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
-            }
+            leadingIcon = { Icon(Icons.Filled.Email, contentDescription = null, tint = MaterialTheme.colorScheme.primary) }
         )
-        Spacer(Modifier.height(16.dp))
+        Spacer(Modifier.height(10.dp))
         AuthTextField(
             title = "Contraseña",
             value = password,
             onValueChange = { password = it },
             placeholder = "Ingrese contraseña",
             isPassword = true,
-            leadingIcon = {
-                Icon(Icons.Filled.Lock, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
-            }
+            leadingIcon = { Icon(Icons.Filled.Lock, contentDescription = null, tint = MaterialTheme.colorScheme.primary) }
         )
-
         Spacer(Modifier.height(8.dp))
-
         Box(
             modifier = Modifier.fillMaxWidth(),
             contentAlignment = Alignment.CenterEnd
         ) {
             TextButton(onClick = { /* sin lógica */ }) {
-                Text("¿Olvidaste la contraseña?",
-                    fontFamily = FontFamily(Font(R.font.nunito_black)),
-                    color = MaterialTheme.colorScheme.secondary)
+                Text(
+                    "¿Olvidaste la contraseña?",
+                    style = AppTypography.subtitulo,
+                    color = MaterialTheme.colorScheme.secondary
+                )
             }
         }
-
+        errorMessage?.let {
+            Spacer(Modifier.height(10.dp))
+            Text(
+                text = it,
+                color = MaterialTheme.colorScheme.secondary,
+                style = AppTypography.subtitulo,
+                modifier = Modifier.fillMaxWidth(),
+                textAlign = TextAlign.Center,
+            )
+        }
         Spacer(Modifier.height(16.dp))
-
         Button(
             onClick = { /* solo UI */ },
             modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(12.dp),
+            shape = RoundedCornerShape(50.dp),
             colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
         ) {
-            Text("INICIAR SESIÓN",
-                fontFamily = FontFamily(Font(R.font.nunito_black)),
-                color = MaterialTheme.colorScheme.onPrimary)
+            Text(
+                "INICIAR SESIÓN",
+                style = AppTypography.titulo2,
+                color = MaterialTheme.colorScheme.onPrimary
+            )
         }
     }
 }
@@ -232,6 +240,7 @@ fun RegisterForm() {
     var phone by remember { mutableStateOf("") }
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
+    var errorMessage by remember { mutableStateOf<String?>(null) }
 
     Column(modifier = Modifier.fillMaxWidth()) {
         AuthTextField(
@@ -239,54 +248,47 @@ fun RegisterForm() {
             value = username,
             onValueChange = { username = it },
             placeholder = "Ingrese nombre completo",
-            leadingIcon = {
-                Icon(Icons.Filled.Person, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
-            }
+            leadingIcon = { Icon(Icons.Filled.Person, contentDescription = null, tint = MaterialTheme.colorScheme.primary) }
         )
-        Spacer(Modifier.height(16.dp))
-
-        AuthTextField(
-            title = "Teléfono",
-            value = phone,
-            onValueChange = { phone = it },
-            placeholder = "Ingrese número de teléfono",
-            leadingIcon = {
-                Icon(Icons.Filled.Phone, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
-            }
-        )
-
-        Spacer(Modifier.height(16.dp))
-
+        Spacer(Modifier.height(10.dp))
         AuthTextField(
             title = "Correo electrónico",
             value = email,
             onValueChange = { email = it },
             placeholder = "Ingrese correo",
-            leadingIcon = {
-                Icon(Icons.Filled.Email, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
-            }
+            leadingIcon = { Icon(Icons.Filled.Email, contentDescription = null, tint = MaterialTheme.colorScheme.primary) }
         )
-        Spacer(Modifier.height(16.dp))
+        Spacer(Modifier.height(10.dp))
         AuthTextField(
             title = "Contraseña",
             value = password,
             onValueChange = { password = it },
             placeholder = "Ingrese contraseña",
             isPassword = true,
-            leadingIcon = {
-                Icon(Icons.Filled.Lock, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
-            }
+            leadingIcon = { Icon(Icons.Filled.Lock, contentDescription = null, tint = MaterialTheme.colorScheme.primary) }
         )
+        errorMessage?.let {
+            Spacer(Modifier.height(25.dp))
+            Text(
+                text = it,
+                color = MaterialTheme.colorScheme.secondary,
+                style = AppTypography.subtitulo,
+                modifier = Modifier.fillMaxWidth(),
+                textAlign = TextAlign.Center,
+            )
+        }
         Spacer(Modifier.height(24.dp))
         Button(
             onClick = { /* solo UI */ },
             modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(12.dp),
+            shape = RoundedCornerShape(50.dp),
             colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
         ) {
-            Text("REGISTRARSE",
-                fontFamily = FontFamily(Font(R.font.nunito_black)),
-                color = MaterialTheme.colorScheme.onPrimary)
+            Text(
+                "REGISTRARSE",
+                style = AppTypography.titulo2,
+                color = MaterialTheme.colorScheme.onPrimary
+            )
         }
     }
 }
