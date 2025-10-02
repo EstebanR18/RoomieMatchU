@@ -38,7 +38,12 @@ public class UserController {
     public Response login(LoginDTO dto) {
         try {
             UserEntity user = userService.login(dto.correo, dto.password);
-            return Response.ok("Bienvenido " + user.getUsuario()).build();
+            return Response.ok(
+                    java.util.Map.of(
+                            "mensaje", "Bienvenido " + user.getUsuario(),
+                            "userId", user.getId()
+                    )
+            ).build();
         } catch (Exception e) {
             return Response.status(Response.Status.UNAUTHORIZED).entity(e.getMessage()).build();
         }
