@@ -14,6 +14,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import com.example.approomiematchu.R
+import com.example.approomiematchu.navigation.AppScreens
 import com.example.approomiematchu.ui.theme.AppTypography
 import com.example.approomiematchu.ui.theme.RoomieMatchUTheme
 
@@ -65,7 +66,7 @@ fun HomeScreen(navController: NavController) {
             ) {
                 // Botón Iniciar Sesión
                 Button(
-                    onClick = { navController.navigate("login") },
+                    onClick = { navController.navigate(AppScreens.AuthScreen.createRoute(true))},
                     modifier = Modifier
                         .fillMaxWidth(0.8f)
                         .height(48.dp),
@@ -84,7 +85,7 @@ fun HomeScreen(navController: NavController) {
 
                 // Botón Registrarse
                 OutlinedButton(
-                    onClick = { navController.navigate("register") },
+                    onClick = { navController.navigate(AppScreens.AuthScreen.createRoute(false))},
                     modifier = Modifier
                         .fillMaxWidth(0.8f)
                         .height(48.dp),
@@ -108,11 +109,11 @@ fun HomeScreen(navController: NavController) {
     }
 }
 
+
 @Preview(showBackground = true)
 @Composable
 fun HomeScreenPreview() {
     RoomieMatchUTheme {
-        // 👇 Para el preview, ponemos un NavController fake
         HomeScreen(navController = androidx.navigation.compose.rememberNavController())
     }
 }

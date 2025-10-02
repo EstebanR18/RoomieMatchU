@@ -37,15 +37,15 @@ fun AppNavigation(modifier: Modifier = Modifier) {
         }
 
         composable(AppScreens.EnterEmail.route) {
-            EnterEmailScreen(navController)
+            EnterEmailScreen(navController = navController)
         }
 
         composable(AppScreens.EnterCode.route) {
-            EnterCodeScreen(navController)
+            EnterCodeScreen(navController = navController)
         }
 
         composable(AppScreens.NewPassword.route) {
-            NewPasswordScreen(navController)
+            NewPasswordScreen(navController = navController)
         }
 
     }
