@@ -1,5 +1,6 @@
 package com.example.approomiematchu.ui.authentication
 
+import android.widget.Toast
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -34,6 +35,7 @@ import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -41,6 +43,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
@@ -203,8 +206,18 @@ fun AuthTextField(
 fun LoginForm(navController: NavController, viewModel: AuthViewModel = viewModel()) {
     val email by viewModel.email
     val password by viewModel.password
-    val errorMessage by viewModel.errorMessage
     val isLoading by viewModel.isLoading
+
+    val context = LocalContext.current
+    val error = viewModel.errorMessage.value
+
+    LaunchedEffect(error) {
+        if (error != null) {
+            Toast.makeText(context, error, Toast.LENGTH_LONG).show()
+            viewModel.errorMessage.value = null
+        }
+    }
+
 
     Column(modifier = Modifier.fillMaxWidth()) {
         AuthTextField(
@@ -248,15 +261,9 @@ fun LoginForm(navController: NavController, viewModel: AuthViewModel = viewModel
                 )
             }
         }
-        if (errorMessage != null) {
-            Text(
-                text = errorMessage!!,
-                color = MaterialTheme.colorScheme.secondary,
-                modifier = Modifier.fillMaxWidth(),
-                textAlign = TextAlign.Center
-            )
-        }
+
         Spacer(Modifier.height(16.dp))
+
         Button(
             onClick = {
                 viewModel.login {
@@ -286,8 +293,17 @@ fun RegisterForm(
     val phone by viewModel.phone
     val email by viewModel.email
     val password by viewModel.password
-    val errorMessage by viewModel.errorMessage
     val isLoading by viewModel.isLoading
+
+    val context = LocalContext.current
+    val error = viewModel.errorMessage.value
+
+    LaunchedEffect(error) {
+        if (error != null) {
+            Toast.makeText(context, error, Toast.LENGTH_LONG).show()
+            viewModel.errorMessage.value = null
+        }
+    }
 
     Column(modifier = Modifier.fillMaxWidth()) {
 
@@ -370,16 +386,6 @@ fun RegisterForm(
             }
         )
 
-        errorMessage?.let {
-            Spacer(Modifier.height(25.dp))
-            Text(
-                text = it,
-                color = MaterialTheme.colorScheme.secondary,
-                style = AppTypography.subtitulo,
-                modifier = Modifier.fillMaxWidth(),
-                textAlign = TextAlign.Center,
-            )
-        }
 
         Spacer(Modifier.height(24.dp))
 
