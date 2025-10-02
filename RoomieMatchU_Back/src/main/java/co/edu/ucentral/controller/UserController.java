@@ -27,7 +27,14 @@ public class UserController {
                     .build();
 
             userService.registerUser(user, dto.password);
-            return Response.ok("Registro exitoso").build();
+
+            // ✅ Ahora devolvemos un JSON válido
+            return Response.ok(
+                    java.util.Map.of(
+                            "mensaje", "Registro exitoso"
+                    )
+            ).build();
+
         } catch (Exception e) {
             return Response.status(Response.Status.BAD_REQUEST).entity(e.getMessage()).build();
         }
