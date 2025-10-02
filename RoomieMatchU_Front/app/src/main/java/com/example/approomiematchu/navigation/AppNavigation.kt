@@ -9,6 +9,7 @@ import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.example.approomiematchu.ui.authentication.AuthScreen
 import com.example.approomiematchu.ui.LandingScreen
+import com.example.approomiematchu.ui.ProfileScreen
 import com.example.approomiematchu.ui.authentication.EnterCodeScreen
 import com.example.approomiematchu.ui.authentication.EnterEmailScreen
 import com.example.approomiematchu.ui.authentication.NewPasswordScreen
@@ -45,6 +46,10 @@ fun AppNavigation(modifier: Modifier = Modifier) {
 
         composable(AppScreens.NewPassword.route) {
             NewPasswordScreen(navController = navController)
+        }
+
+        composable(AppScreens.ProfileScreen.route){
+            ProfileScreen(navController = navController)
         }
 
     }

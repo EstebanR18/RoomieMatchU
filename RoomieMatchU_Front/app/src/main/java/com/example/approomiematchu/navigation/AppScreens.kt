@@ -12,4 +12,6 @@ sealed class AppScreens(val route: String) {
     object EnterCode : AppScreens("enter_code")
     object NewPassword : AppScreens("new_password")
 
+    object ProfileScreen : AppScreens("profile_screen")
+
 }
