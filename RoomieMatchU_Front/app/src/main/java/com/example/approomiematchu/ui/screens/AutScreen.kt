@@ -21,6 +21,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Email
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.Phone
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material3.Button
@@ -261,37 +262,90 @@ fun LoginForm(navController: NavController) {
 
 @Composable
 fun RegisterForm() {
-    var username by remember { mutableStateOf("") }
-    var phone by remember { mutableStateOf("") }
+    var fullName by remember { mutableStateOf("") }      // Nombre completo
+    var username by remember { mutableStateOf("") }      // Usuario
+    var phone by remember { mutableStateOf("") }         // Teléfono
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
     var errorMessage by remember { mutableStateOf<String?>(null) }
 
     Column(modifier = Modifier.fillMaxWidth()) {
+
         AuthTextField(
             title = "Nombre completo",
-            value = username,
-            onValueChange = { username = it },
+            value = fullName,
+            onValueChange = { fullName = it },
             placeholder = "Ingrese nombre completo",
-            leadingIcon = { Icon(Icons.Filled.Person, contentDescription = null, tint = MaterialTheme.colorScheme.primary) }
+            leadingIcon = {
+                Icon(
+                    Icons.Filled.Person,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.primary
+                )
+            }
         )
         Spacer(Modifier.height(10.dp))
+
+        AuthTextField(
+            title = "Usuario",
+            value = username,
+            onValueChange = { username = it },
+            placeholder = "Ingrese nombre de usuario",
+            leadingIcon = {
+                Icon(
+                    Icons.Filled.Person,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.primary
+                )
+            }
+        )
+        Spacer(Modifier.height(10.dp))
+
+        AuthTextField(
+            title = "Teléfono",
+            value = phone,
+            onValueChange = { phone = it },
+            placeholder = "Ingrese número de teléfono",
+            leadingIcon = {
+                Icon(
+                    Icons.Filled.Phone,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.primary
+                )
+            }
+        )
+        Spacer(Modifier.height(10.dp))
+
         AuthTextField(
             title = "Correo electrónico",
             value = email,
             onValueChange = { email = it },
             placeholder = "Ingrese correo",
-            leadingIcon = { Icon(Icons.Filled.Email, contentDescription = null, tint = MaterialTheme.colorScheme.primary) }
+            leadingIcon = {
+                Icon(
+                    Icons.Filled.Email,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.primary
+                )
+            }
         )
         Spacer(Modifier.height(10.dp))
+
         AuthTextField(
             title = "Contraseña",
             value = password,
             onValueChange = { password = it },
             placeholder = "Ingrese contraseña",
             isPassword = true,
-            leadingIcon = { Icon(Icons.Filled.Lock, contentDescription = null, tint = MaterialTheme.colorScheme.primary) }
+            leadingIcon = {
+                Icon(
+                    Icons.Filled.Lock,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.primary
+                )
+            }
         )
+
         errorMessage?.let {
             Spacer(Modifier.height(25.dp))
             Text(
@@ -302,7 +356,9 @@ fun RegisterForm() {
                 textAlign = TextAlign.Center,
             )
         }
+
         Spacer(Modifier.height(24.dp))
+
         Button(
             onClick = { /* solo UI */ },
             modifier = Modifier.fillMaxWidth(),
@@ -317,6 +373,7 @@ fun RegisterForm() {
         }
     }
 }
+
 
 /*
 @Preview(showBackground = true, widthDp = 360, heightDp = 800)
