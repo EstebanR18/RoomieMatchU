@@ -1,5 +1,6 @@
 package com.example.approomiematchu.ui.authentication
 
+import android.widget.Toast
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -13,8 +14,10 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import com.example.approomiematchu.R
 import com.example.approomiematchu.navigation.AppScreens
@@ -22,8 +25,9 @@ import com.example.approomiematchu.ui.theme.AppTypography
 
 // --- Pantalla de ingresar correo
 @Composable
-fun EnterEmailScreen(navController: NavController) {
-    var email by remember { mutableStateOf("") }
+fun EnterEmailScreen(navController: NavController, viewModel: PasswordResetViewModel) {
+
+    val context = LocalContext.current
 
     CommonResetPasswordBackground {
         Text("Olvidé la contraseña", style = AppTypography.titulo2, color = MaterialTheme.colorScheme.onSurface)
@@ -32,8 +36,8 @@ fun EnterEmailScreen(navController: NavController) {
 
         AuthTextField(
             title = "Correo electrónico",
-            value = email,
-            onValueChange = { email = it },
+            value = viewModel.email.value,
+            onValueChange = { viewModel.email.value = it },
             placeholder = "Ingrese su correo",
             leadingIcon = {
                 Icon(
@@ -47,20 +51,34 @@ fun EnterEmailScreen(navController: NavController) {
         Spacer(Modifier.height(24.dp))
 
         Button(
-            onClick = {  navController.navigate(AppScreens.EnterCode.route) },
+            onClick = {
+                viewModel.requestCode {
+                    navController.navigate(AppScreens.EnterCode.route)
+                }
+            },
             modifier = Modifier.fillMaxWidth(),
             shape = RoundedCornerShape(50.dp),
+            enabled = !viewModel.isLoading.value,
             colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
         ) {
-            Text("ENVIAR CÓDIGO", style = AppTypography.titulo2, color = MaterialTheme.colorScheme.onPrimary)
+            Text(if (viewModel.isLoading.value) "ENVIANDO..." else "ENVIAR CÓDIGO", style = AppTypography.titulo2, color = MaterialTheme.colorScheme.onPrimary)
+        }
+
+        viewModel.errorMessage.value?.let {
+            Toast.makeText(context, it, Toast.LENGTH_LONG).show()
+            viewModel.errorMessage.value = null
+        }
+        viewModel.successMessage.value?.let {
+            Toast.makeText(context, it, Toast.LENGTH_LONG).show()
+            viewModel.successMessage.value = null
         }
     }
 }
 
 // --- Pantalla de ingresar código
 @Composable
-fun EnterCodeScreen(navController: NavController) {
-    var code by remember { mutableStateOf("") }
+fun EnterCodeScreen(navController: NavController, viewModel: PasswordResetViewModel) {
+    val context = LocalContext.current
 
     CommonResetPasswordBackground {
         Text("Olvidé la contraseña", style = AppTypography.titulo2, color = MaterialTheme.colorScheme.onSurface)
@@ -69,8 +87,8 @@ fun EnterCodeScreen(navController: NavController) {
 
         AuthTextField(
             title = "Código de autenticación",
-            value = code,
-            onValueChange = { code = it },
+            value = viewModel.token.value,
+            onValueChange = { viewModel.token.value = it },
             placeholder = "Ingrese código",
             leadingIcon = {
                 Icon(
@@ -84,21 +102,34 @@ fun EnterCodeScreen(navController: NavController) {
         Spacer(Modifier.height(24.dp))
 
         Button(
-            onClick = { navController.navigate(AppScreens.NewPassword.route)     },
+            onClick = {
+                viewModel.validateToken {
+                    navController.navigate(AppScreens.NewPassword.route)
+                }
+            },
             modifier = Modifier.fillMaxWidth(),
             shape = RoundedCornerShape(50.dp),
+            enabled = !viewModel.isLoading.value,
             colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
         ) {
-            Text("CONFIRMAR", style = AppTypography.titulo2, color = MaterialTheme.colorScheme.onPrimary)
+            Text(if (viewModel.isLoading.value) "VALIDANDO..." else "CONFIRMAR", style = AppTypography.titulo2, color = MaterialTheme.colorScheme.onPrimary)
+        }
+
+        viewModel.errorMessage.value?.let {
+            Toast.makeText(context, it, Toast.LENGTH_LONG).show()
+            viewModel.errorMessage.value = null
+        }
+        viewModel.successMessage.value?.let {
+            Toast.makeText(context, it, Toast.LENGTH_LONG).show()
+            viewModel.successMessage.value = null
         }
     }
 }
 
 // --- Pantalla de nueva contraseña
 @Composable
-fun NewPasswordScreen(navController: NavController) {
-    var password by remember { mutableStateOf("") }
-    var confirmPassword by remember { mutableStateOf("") }
+fun NewPasswordScreen(navController: NavController, viewModel: PasswordResetViewModel) {
+    val context = LocalContext.current
 
     CommonResetPasswordBackground {
         Text("Olvidé la contraseña",
@@ -110,8 +141,8 @@ fun NewPasswordScreen(navController: NavController) {
 
         AuthTextField(
             title = "Contraseña Nueva",
-            value = password,
-            onValueChange = { password = it },
+            value = viewModel.newPassword.value,
+            onValueChange = { viewModel.newPassword.value = it },
             placeholder = "Ingrese contraseña",
             isPassword = true,
             leadingIcon = {
@@ -127,8 +158,8 @@ fun NewPasswordScreen(navController: NavController) {
 
         AuthTextField(
             title = "Confirmar Contraseña Nueva",
-            value = confirmPassword,
-            onValueChange = { confirmPassword = it },
+            value = viewModel.confirmPassword.value,
+            onValueChange = { viewModel.confirmPassword.value = it },
             placeholder = "Repita la contraseña",
             isPassword = true,
             leadingIcon = {
@@ -144,17 +175,30 @@ fun NewPasswordScreen(navController: NavController) {
 
         Button(
             onClick = {
-                navController.navigate(
-                    AppScreens.AuthScreen.createRoute(startInLogin = true)
-                ) {
-                    popUpTo(AppScreens.AuthScreen.route) { inclusive = true }
+                viewModel.resetPassword {
+                    navController.navigate(
+                        AppScreens.AuthScreen.createRoute(startInLogin = true)
+                    ) {
+                        popUpTo(AppScreens.AuthScreen.route) { inclusive = true }
+                    }
                 }
-            },
+            }
+            ,
             modifier = Modifier.fillMaxWidth(),
             shape = RoundedCornerShape(50.dp),
+            enabled = !viewModel.isLoading.value,
             colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
         ) {
-            Text("RESTABLECER", style = AppTypography.titulo2, color = MaterialTheme.colorScheme.onPrimary)
+            Text(if (viewModel.isLoading.value) "GUARDANDO..." else "RESTABLECER", style = AppTypography.titulo2, color = MaterialTheme.colorScheme.onPrimary)
+        }
+
+        viewModel.errorMessage.value?.let {
+            Toast.makeText(context, it, Toast.LENGTH_LONG).show()
+            viewModel.errorMessage.value = null
+        }
+        viewModel.successMessage.value?.let {
+            Toast.makeText(context, it, Toast.LENGTH_LONG).show()
+            viewModel.successMessage.value = null
         }
     }
 }

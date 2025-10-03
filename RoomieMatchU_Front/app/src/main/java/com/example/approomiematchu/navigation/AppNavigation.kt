@@ -2,6 +2,7 @@ package com.example.approomiematchu.navigation
 
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -13,10 +14,13 @@ import com.example.approomiematchu.ui.ProfileScreen
 import com.example.approomiematchu.ui.authentication.EnterCodeScreen
 import com.example.approomiematchu.ui.authentication.EnterEmailScreen
 import com.example.approomiematchu.ui.authentication.NewPasswordScreen
+import com.example.approomiematchu.ui.authentication.PasswordResetViewModel
 
 @Composable
 fun AppNavigation(modifier: Modifier = Modifier) {
     val navController = rememberNavController()
+
+    val passwordViewModel: PasswordResetViewModel = viewModel()
 
     NavHost(
         navController = navController,
@@ -37,16 +41,17 @@ fun AppNavigation(modifier: Modifier = Modifier) {
         }
 
         composable(AppScreens.EnterEmail.route) {
-            EnterEmailScreen(navController = navController)
+            EnterEmailScreen(navController = navController, passwordViewModel)
         }
 
         composable(AppScreens.EnterCode.route) {
-            EnterCodeScreen(navController = navController)
+            EnterCodeScreen(navController = navController, passwordViewModel)
         }
 
         composable(AppScreens.NewPassword.route) {
-            NewPasswordScreen(navController = navController)
+            NewPasswordScreen(navController = navController, passwordViewModel)
         }
+
 
         composable(AppScreens.ProfileScreen.route){
             ProfileScreen(navController = navController)
