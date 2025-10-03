@@ -5,15 +5,19 @@ import co.edu.ucentral.entity.PasswordResetTokenEntity;
 import co.edu.ucentral.entity.UserEntity;
 import co.edu.ucentral.repository.PasswordResetTokenRepository;
 import co.edu.ucentral.repository.UserRepository;
+import io.quarkus.mailer.Mail;
+import io.quarkus.mailer.Mailer;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import jakarta.transaction.Transactional;
-
+import org.jboss.logging.Logger;
 import java.time.LocalDateTime;
 import java.util.UUID;
 
 @ApplicationScoped
 public class PasswordResetService {
+
+    private static final Logger LOG = Logger.getLogger(PasswordResetService.class);
 
     @Inject
     UserRepository userRepository;
@@ -21,18 +25,21 @@ public class PasswordResetService {
     @Inject
     PasswordResetTokenRepository tokenRepository;
 
+    @Inject
+    Mailer mailer;
+
     @Transactional
-    public String requestPasswordReset(String correo) {
-        // 1. Limpiar tokens viejos antes de crear uno nuevo
-        tokenRepository.deleteExpiredTokens();
+    public void requestPasswordReset(String correo) {
+        LOG.info("Intentando generar token para correo: " + correo);
 
         UserEntity user = userRepository.findByCorreo(correo);
         if (user == null) {
+            LOG.warn("Correo no registrado: " + correo);
             throw new RuntimeException("Correo no registrado");
         }
 
-        // Generar token único
-        String token = UUID.randomUUID().toString();
+        String token = String.format("%06d", new java.util.Random().nextInt(999999));
+        LOG.info("Token generado: " + token);
 
         PasswordResetTokenEntity resetToken = PasswordResetTokenEntity.builder()
                 .correo(correo)
@@ -41,9 +48,23 @@ public class PasswordResetService {
                 .build();
 
         tokenRepository.persist(resetToken);
+        LOG.info("Token guardado en base de datos");
 
-        return token; // más adelante lo enviaremos por correo
+        try {
+            mailer.send(
+                    Mail.withText(
+                            correo,
+                            "Código para restablecer contraseña",
+                            "Tu código es: " + token + "\nVálido por 15 minutos."
+                    )
+            );
+            LOG.info("Correo enviado a: " + correo);
+        } catch (Exception e) {
+            LOG.error("Error enviando correo: " + e.getMessage(), e);
+            throw new RuntimeException("No se pudo enviar el correo");
+        }
     }
+
 
 
     public boolean validateToken(String correo, String token) {
@@ -59,11 +80,6 @@ public class PasswordResetService {
 
     @Transactional
     public void resetPassword(String correo, String token, String newPassword, String confirmPassword) {
-
-        // Validar coincidencia de contraseñas
-        if (newPassword == null || confirmPassword == null || !newPassword.equals(confirmPassword)) {
-            throw new RuntimeException("Las contraseñas no coinciden");
-        }
 
         // Validar token
         PasswordResetTokenEntity resetToken = tokenRepository.findValidToken(correo, token);
