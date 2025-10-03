@@ -15,6 +15,24 @@ public class UserService {
 
     @Transactional
     public UserEntity registerUser(UserEntity user, String password) {
+
+        // Validar campos vacíos
+        if (user.getNombreCompleto() == null || user.getNombreCompleto().isBlank()) {
+            throw new RuntimeException("El nombre completo es obligatorio");
+        }
+        if (user.getUsuario() == null || user.getUsuario().isBlank()) {
+            throw new RuntimeException("El nombre de usuario es obligatorio");
+        }
+        if (user.getTelefono() == null || user.getTelefono().isBlank()) {
+            throw new RuntimeException("El teléfono es obligatorio");
+        }
+        if (user.getCorreo() == null || user.getCorreo().isBlank()) {
+            throw new RuntimeException("El correo es obligatorio");
+        }
+        if (password == null || password.isBlank()) {
+            throw new RuntimeException("La contraseña es obligatoria");
+        }
+
         // Validar duplicados
         if (userRepository.existsByCorreo(user.getCorreo())) {
             throw new RuntimeException("Correo ya registrado");
@@ -23,14 +41,16 @@ public class UserService {
             throw new RuntimeException("Usuario ya registrado");
         }
 
-        // ✅ Validar formato de correo
+        // Validar formato de correo
         if (!user.getCorreo().matches("^[A-Za-z0-9+_.-]+@[A-Za-z0-9.-]+$")) {
             throw new RuntimeException("Formato de correo inválido");
         }
 
-        // Validar contraseña
+        // Validar seguridad de contraseña
         if (!password.matches("^(?=.*[A-Z])(?=.*[a-z])(?=.*\\d)(?=.*[@$!%*?&])[A-Za-z\\d@$!%*?&]{8,}$")) {
-            throw new RuntimeException("La contraseña no cumple requisitos de seguridad");
+            throw new RuntimeException(
+                    "La contraseña debe tener mínimo 8 caracteres, incluir mayúscula, minúscula, número y símbolo"
+            );
         }
 
         // Hashear contraseña

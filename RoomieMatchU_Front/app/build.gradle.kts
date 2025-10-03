@@ -59,4 +59,14 @@ dependencies {
     debugImplementation(libs.androidx.ui.test.manifest)
 
     implementation(libs.androidx.navigation.compose)
+
+    // Retrofit
+    implementation("com.squareup.retrofit2:retrofit:3.0.0")
+
+    // Converter library for JSON serialization/deserialization (e.g., Gson)
+    implementation("com.squareup.retrofit2:converter-gson:3.0.0")
+
+    // OkHttp (often used by Retrofit for network requests)
+    implementation("com.squareup.okhttp3:okhttp:5.1.0")
+    implementation("com.squareup.okhttp3:logging-interceptor:5.1.0") // Optional: for logging network requests
 }

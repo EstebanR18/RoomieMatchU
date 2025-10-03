@@ -1,29 +1,43 @@
-package com.example.approomiematchu.ui.screens.authentication
+package com.example.approomiematchu.ui.authentication
 
+import android.widget.Toast
 import androidx.compose.foundation.Image
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ColumnScope
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Email
 import androidx.compose.material.icons.filled.Lock
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.navigation.NavController
 import com.example.approomiematchu.R
-import com.example.approomiematchu.ui.screens.AuthTextField
+import com.example.approomiematchu.navigation.AppScreens
 import com.example.approomiematchu.ui.theme.AppTypography
 
 // --- Pantalla de ingresar correo
 @Composable
-fun EnterEmailScreen() {
-    var email by remember { mutableStateOf("") }
+fun EnterEmailScreen(navController: NavController, viewModel: PasswordResetViewModel) {
+
+    val context = LocalContext.current
 
     CommonResetPasswordBackground {
         Text("Olvidé la contraseña", style = AppTypography.titulo2, color = MaterialTheme.colorScheme.onSurface)
@@ -32,8 +46,8 @@ fun EnterEmailScreen() {
 
         AuthTextField(
             title = "Correo electrónico",
-            value = email,
-            onValueChange = { email = it },
+            value = viewModel.email.value,
+            onValueChange = { viewModel.email.value = it },
             placeholder = "Ingrese su correo",
             leadingIcon = {
                 Icon(
@@ -47,20 +61,34 @@ fun EnterEmailScreen() {
         Spacer(Modifier.height(24.dp))
 
         Button(
-            onClick = { /* Acción de enviar código */ },
+            onClick = {
+                viewModel.requestCode {
+                    navController.navigate(AppScreens.EnterCode.route)
+                }
+            },
             modifier = Modifier.fillMaxWidth(),
             shape = RoundedCornerShape(50.dp),
+            enabled = !viewModel.isLoading.value,
             colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
         ) {
-            Text("ENVIAR CÓDIGO", style = AppTypography.titulo2, color = MaterialTheme.colorScheme.onPrimary)
+            Text(if (viewModel.isLoading.value) "ENVIANDO..." else "ENVIAR CÓDIGO", style = AppTypography.titulo2, color = MaterialTheme.colorScheme.onPrimary)
+        }
+
+        viewModel.errorMessage.value?.let {
+            Toast.makeText(context, it, Toast.LENGTH_LONG).show()
+            viewModel.errorMessage.value = null
+        }
+        viewModel.successMessage.value?.let {
+            Toast.makeText(context, it, Toast.LENGTH_LONG).show()
+            viewModel.successMessage.value = null
         }
     }
 }
 
 // --- Pantalla de ingresar código
 @Composable
-fun EnterCodeScreen() {
-    var code by remember { mutableStateOf("") }
+fun EnterCodeScreen(navController: NavController, viewModel: PasswordResetViewModel) {
+    val context = LocalContext.current
 
     CommonResetPasswordBackground {
         Text("Olvidé la contraseña", style = AppTypography.titulo2, color = MaterialTheme.colorScheme.onSurface)
@@ -69,8 +97,8 @@ fun EnterCodeScreen() {
 
         AuthTextField(
             title = "Código de autenticación",
-            value = code,
-            onValueChange = { code = it },
+            value = viewModel.token.value,
+            onValueChange = { viewModel.token.value = it },
             placeholder = "Ingrese código",
             leadingIcon = {
                 Icon(
@@ -84,21 +112,34 @@ fun EnterCodeScreen() {
         Spacer(Modifier.height(24.dp))
 
         Button(
-            onClick = { /* Acción de validar código */ },
+            onClick = {
+                viewModel.validateToken {
+                    navController.navigate(AppScreens.NewPassword.route)
+                }
+            },
             modifier = Modifier.fillMaxWidth(),
             shape = RoundedCornerShape(50.dp),
+            enabled = !viewModel.isLoading.value,
             colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
         ) {
-            Text("CONFIRMAR", style = AppTypography.titulo2, color = MaterialTheme.colorScheme.onPrimary)
+            Text(if (viewModel.isLoading.value) "VALIDANDO..." else "CONFIRMAR", style = AppTypography.titulo2, color = MaterialTheme.colorScheme.onPrimary)
+        }
+
+        viewModel.errorMessage.value?.let {
+            Toast.makeText(context, it, Toast.LENGTH_LONG).show()
+            viewModel.errorMessage.value = null
+        }
+        viewModel.successMessage.value?.let {
+            Toast.makeText(context, it, Toast.LENGTH_LONG).show()
+            viewModel.successMessage.value = null
         }
     }
 }
 
 // --- Pantalla de nueva contraseña
 @Composable
-fun NewPasswordScreen() {
-    var password by remember { mutableStateOf("") }
-    var confirmPassword by remember { mutableStateOf("") }
+fun NewPasswordScreen(navController: NavController, viewModel: PasswordResetViewModel) {
+    val context = LocalContext.current
 
     CommonResetPasswordBackground {
         Text("Olvidé la contraseña",
@@ -110,8 +151,8 @@ fun NewPasswordScreen() {
 
         AuthTextField(
             title = "Contraseña Nueva",
-            value = password,
-            onValueChange = { password = it },
+            value = viewModel.newPassword.value,
+            onValueChange = { viewModel.newPassword.value = it },
             placeholder = "Ingrese contraseña",
             isPassword = true,
             leadingIcon = {
@@ -127,8 +168,8 @@ fun NewPasswordScreen() {
 
         AuthTextField(
             title = "Confirmar Contraseña Nueva",
-            value = confirmPassword,
-            onValueChange = { confirmPassword = it },
+            value = viewModel.confirmPassword.value,
+            onValueChange = { viewModel.confirmPassword.value = it },
             placeholder = "Repita la contraseña",
             isPassword = true,
             leadingIcon = {
@@ -143,12 +184,31 @@ fun NewPasswordScreen() {
         Spacer(Modifier.height(24.dp))
 
         Button(
-            onClick = { /* Acción de restablecer contraseña */ },
+            onClick = {
+                viewModel.resetPassword {
+                    navController.navigate(
+                        AppScreens.AuthScreen.createRoute(startInLogin = true)
+                    ) {
+                        popUpTo(AppScreens.AuthScreen.route) { inclusive = true }
+                    }
+                }
+            }
+            ,
             modifier = Modifier.fillMaxWidth(),
             shape = RoundedCornerShape(50.dp),
+            enabled = !viewModel.isLoading.value,
             colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
         ) {
-            Text("RESTABLECER", style = AppTypography.titulo2, color = MaterialTheme.colorScheme.onPrimary)
+            Text(if (viewModel.isLoading.value) "GUARDANDO..." else "RESTABLECER", style = AppTypography.titulo2, color = MaterialTheme.colorScheme.onPrimary)
+        }
+
+        viewModel.errorMessage.value?.let {
+            Toast.makeText(context, it, Toast.LENGTH_LONG).show()
+            viewModel.errorMessage.value = null
+        }
+        viewModel.successMessage.value?.let {
+            Toast.makeText(context, it, Toast.LENGTH_LONG).show()
+            viewModel.successMessage.value = null
         }
     }
 }
@@ -176,6 +236,7 @@ fun CommonResetPasswordBackground(content: @Composable ColumnScope.() -> Unit) {
     }
 }
 
+/*
 @Preview(showBackground = true, showSystemUi = true)
 @Composable
 fun PreviewEnterEmailScreen() {
@@ -193,3 +254,5 @@ fun PreviewEnterCodeScreen() {
 fun PreviewNewPasswordScreen() {
     NewPasswordScreen()
 }
+
+ */

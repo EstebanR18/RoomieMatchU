@@ -2,26 +2,33 @@ package com.example.approomiematchu.navigation
 
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
-import com.example.approomiematchu.ui.screens.AuthScreen
-import com.example.approomiematchu.ui.screens.HomeScreen
-
+import com.example.approomiematchu.ui.authentication.AuthScreen
+import com.example.approomiematchu.ui.LandingScreen
+import com.example.approomiematchu.ui.ProfileScreen
+import com.example.approomiematchu.ui.authentication.EnterCodeScreen
+import com.example.approomiematchu.ui.authentication.EnterEmailScreen
+import com.example.approomiematchu.ui.authentication.NewPasswordScreen
+import com.example.approomiematchu.ui.authentication.PasswordResetViewModel
 
 @Composable
 fun AppNavigation(modifier: Modifier = Modifier) {
     val navController = rememberNavController()
 
+    val passwordViewModel: PasswordResetViewModel = viewModel()
+
     NavHost(
         navController = navController,
-        startDestination = AppScreens.HomeScreen.route
+        startDestination = AppScreens.LandingScreen.route
     ) {
         // Pantalla de inicio
-        composable(AppScreens.HomeScreen.route) {
-            HomeScreen(navController = navController)
+        composable(AppScreens.LandingScreen.route) {
+            LandingScreen(navController = navController)
         }
 
         // Pantalla de autenticación con argumento
@@ -30,7 +37,24 @@ fun AppNavigation(modifier: Modifier = Modifier) {
             arguments = listOf(navArgument("startInLogin") { type = NavType.BoolType })
         ) { backStackEntry ->
             val startInLogin = backStackEntry.arguments?.getBoolean("startInLogin") ?: true
-            AuthScreen(initialIsLogin = startInLogin)
+            AuthScreen(initialIsLogin = startInLogin, navController = navController)
+        }
+
+        composable(AppScreens.EnterEmail.route) {
+            EnterEmailScreen(navController = navController, passwordViewModel)
+        }
+
+        composable(AppScreens.EnterCode.route) {
+            EnterCodeScreen(navController = navController, passwordViewModel)
+        }
+
+        composable(AppScreens.NewPassword.route) {
+            NewPasswordScreen(navController = navController, passwordViewModel)
+        }
+
+
+        composable(AppScreens.ProfileScreen.route){
+            ProfileScreen(navController = navController)
         }
 
     }

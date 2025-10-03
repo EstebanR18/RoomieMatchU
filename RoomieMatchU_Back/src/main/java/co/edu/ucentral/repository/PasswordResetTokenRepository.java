@@ -13,4 +13,9 @@ public class PasswordResetTokenRepository implements PanacheRepository<PasswordR
         return find("correo = ?1 and token = ?2 and expiration > ?3", correo, token, LocalDateTime.now())
                 .firstResult();
     }
+
+    public void deleteExpiredTokens() {
+        delete("expiration < ?1", LocalDateTime.now());
+    }
+
 }
