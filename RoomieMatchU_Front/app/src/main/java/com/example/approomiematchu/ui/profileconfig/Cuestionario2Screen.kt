@@ -89,7 +89,10 @@ fun Cuestionario2Screen() {
                     .padding(top = 24.dp),
                 shape = RoundedCornerShape(20.dp)
             ) {
-                Text("SIGUIENTE")
+                Text(
+                    "SIGUIENTE",
+                    style = MaterialTheme.typography.headlineMedium
+                )
             }
         }
     }

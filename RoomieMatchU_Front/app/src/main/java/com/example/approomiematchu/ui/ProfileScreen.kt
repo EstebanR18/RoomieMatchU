@@ -29,6 +29,7 @@ import androidx.navigation.compose.rememberNavController
 import com.example.approomiematchu.R
 import com.example.approomiematchu.navigation.AppScreens
 import com.example.approomiematchu.ui.theme.AppTypography
+import com.example.approomiematchu.ui.theme.RoomieMatchUTheme
 
 @Composable
 fun ProfileScreen(navController: NavController){
@@ -46,7 +47,9 @@ fun ProfileScreen(navController: NavController){
         )
 
         Column(
-            modifier = Modifier.fillMaxSize(),
+            modifier = Modifier.fillMaxSize()
+            .fillMaxSize()
+            .padding( 24.dp),
             verticalArrangement = Arrangement.SpaceBetween,
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
@@ -56,12 +59,11 @@ fun ProfileScreen(navController: NavController){
                 contentDescription = "Roomie Illustration",
                 modifier = Modifier
                     .fillMaxWidth(1f)
-                    .padding(top = 50.dp)
+                    .padding(top = 120.dp)
             )
 
             // Texto de bienvenida
             Column(
-                horizontalAlignment = Alignment.CenterHorizontally,
                 modifier = Modifier.padding(top = 10.dp)
             ) {
                 Text(
@@ -76,20 +78,12 @@ fun ProfileScreen(navController: NavController){
                 )
             }
 
-            // Botones
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(bottom = 32.dp),
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
                 // Botón Iniciar Sesión
                 Button(
                     onClick = { navController.navigate(AppScreens.AuthScreen.createRoute(true))},
                     modifier = Modifier
-                        .fillMaxWidth(0.8f)
-                        .height(48.dp),
+                        .fillMaxWidth()
+                        .padding(top = 24.dp),
                     shape = RoundedCornerShape(50),
                     colors = ButtonDefaults.buttonColors(
                         containerColor = MaterialTheme.colorScheme.primary,
@@ -101,7 +95,7 @@ fun ProfileScreen(navController: NavController){
                         style = AppTypography.titulo2,
                         color = MaterialTheme.colorScheme.onPrimary
                     )
-                }
+
             }
         }
     }
@@ -110,13 +104,8 @@ fun ProfileScreen(navController: NavController){
 @Preview(showBackground = true, showSystemUi = true)
 @Composable
 fun ProfileScreenPreview() {
-    AppTheme {
+    RoomieMatchUTheme {
         val navController = rememberNavController()
         ProfileScreen(navController = navController)
     }
-}
-
-@Composable
-fun AppTheme(content: @Composable () -> Unit) {
-    TODO("Not yet implemented")
 }
