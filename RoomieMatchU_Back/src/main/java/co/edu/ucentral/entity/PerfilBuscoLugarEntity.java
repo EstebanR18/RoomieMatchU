@@ -4,6 +4,7 @@ import jakarta.persistence.*;
 import lombok.*;
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.util.List;
 
 @Entity
 @Table(name = "perfil_busco_lugar")
@@ -20,7 +21,7 @@ public class PerfilBuscoLugarEntity {
 
     // Obligatorios
     @Column(nullable = false)
-    private String fotoPerfil;
+    private String fotoPerfil; // URL
 
     @Column(nullable = false)
     private LocalDate fechaNacimiento;
@@ -31,8 +32,16 @@ public class PerfilBuscoLugarEntity {
     @Column(nullable = false)
     private String barrio;
 
-    @Column(nullable = false)
+    @Column(nullable = false, length = 2000)
     private String habitos; // horarios, estilo de vida, etc.
+
+    // NUEVOS CAMPOS
+    private String tipoHabitacion;         // Individual, Compartida
+    private String tiempoEstancia;         // "<6 meses", "6-12", ">1 año"
+    private Integer personasConvivencia;   // ej: 1,2,3
+    private LocalDate fechaMudanza;
+    @Column(length = 2000)
+    private String serviciosDeseados;      // coma-separated o JSON string
 
     // Opcionales
     private String genero; // Masculino, Femenino, Otro
@@ -41,6 +50,11 @@ public class PerfilBuscoLugarEntity {
     private String detalleAlergia;
     private String idioma;
     private String telefono;
+    @Column(length = 2000)
     private String descripcionLibre;
     private Boolean mascota;
+
+    // Fotos (relación OneToMany)
+    @OneToMany(mappedBy = "perfilBusco", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
+    private List<FotoResidenciaEntity> fotosResidencia;
 }

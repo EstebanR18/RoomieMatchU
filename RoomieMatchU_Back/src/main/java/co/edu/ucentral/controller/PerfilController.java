@@ -1,9 +1,9 @@
 package co.edu.ucentral.controller;
 
-import co.edu.ucentral.dto.MensajeResponseDTO;
-import co.edu.ucentral.dto.PerfilBuscoLugarRequestDTO;
-import co.edu.ucentral.dto.PerfilResponseDTO;
-import co.edu.ucentral.dto.PerfilTengoLugarRequestDTO;
+import co.edu.ucentral.dto.*;
+import co.edu.ucentral.dto.multipart.FotoPerfilForm;
+import co.edu.ucentral.dto.multipart.FotosResidenciaForm;
+import co.edu.ucentral.entity.FotoResidenciaEntity;
 import co.edu.ucentral.entity.UserEntity;
 import co.edu.ucentral.repository.PerfilBuscoLugarRepository;
 import co.edu.ucentral.repository.PerfilTengoLugarRepository;
@@ -13,6 +13,8 @@ import jakarta.inject.Inject;
 import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
+import org.jboss.resteasy.annotations.providers.multipart.MultipartForm;
+import java.util.List;
 
 @Path("/api/perfil")
 @Consumes(MediaType.APPLICATION_JSON)
@@ -90,13 +92,10 @@ public class PerfilController {
     // Cambiar tipo de perfil
     @PUT
     @Path("/cambiar-tipo/{userId}")
-    public Response cambiarTipoPerfil(
-            @PathParam("userId") Long userId,
-            @QueryParam("tipo") UserEntity.PerfilTipo nuevoTipo
-    ) {
+    public Response cambiarTipoPerfil(@PathParam("userId") Long userId, CambioTipoPerfilDTO dto) {
         try {
-            perfilService.cambiarTipoPerfil(userId, nuevoTipo);
-            return Response.ok(new MensajeResponseDTO("Tipo de perfil actualizado a " + nuevoTipo)).build();
+            perfilService.cambiarTipoPerfil(userId, dto.getNuevoTipo());
+            return Response.ok(new MensajeResponseDTO("Tipo de perfil actualizado a " + dto.getNuevoTipo())).build();
         } catch (Exception e) {
             return Response.status(Response.Status.BAD_REQUEST)
                     .entity(new MensajeResponseDTO(e.getMessage()))
@@ -139,6 +138,18 @@ public class PerfilController {
             dto.mascota = perfil.getMascota();
             dto.presupuesto = perfil.getPresupuesto();
 
+            // nuevos campos
+            dto.tipoHabitacion = perfil.getTipoHabitacion();
+            dto.tiempoEstancia = perfil.getTiempoEstancia();
+            dto.personasConvivencia = perfil.getPersonasConvivencia();
+            dto.fechaMudanza = perfil.getFechaMudanza();
+            dto.serviciosDeseados = perfil.getServiciosDeseados();
+
+            // fotos
+            if (perfil.getFotosResidencia() != null && !perfil.getFotosResidencia().isEmpty()) {
+                dto.fotosResidenciaUrls = perfil.getFotosResidencia().stream().map(FotoResidenciaEntity::getUrl).toList();
+            }
+
             return Response.ok(dto).build();
         }
 
@@ -172,11 +183,53 @@ public class PerfilController {
             dto.reglasConvivencia = perfil.getReglasConvivencia();
             dto.serviciosIncluidos = perfil.getServiciosIncluidos();
 
+            if (perfil.getFotosResidencia() != null && !perfil.getFotosResidencia().isEmpty()) {
+                dto.fotosResidenciaUrls = perfil.getFotosResidencia().stream().map(FotoResidenciaEntity::getUrl).toList();
+            }
+
             return Response.ok(dto).build();
         }
 
         return Response.status(Response.Status.BAD_REQUEST)
                 .entity(new MensajeResponseDTO("El usuario no tiene perfil asignado")).build();
+    }
+
+    // ----------------- MULTIPART endpoints -----------------
+
+    // Subir foto de perfil
+    @POST
+    @Path("/{userId}/foto-perfil")
+    @Consumes(MediaType.MULTIPART_FORM_DATA)
+    public Response subirFotoPerfil(
+            @PathParam("userId") Long userId,
+            @MultipartForm FotoPerfilForm form
+    ) {
+        try {
+            String url = perfilService.subirFotoPerfil(userId, form.file);
+            return Response.ok(url).build();
+        } catch (Exception e) {
+            return Response.status(Response.Status.BAD_REQUEST)
+                    .entity(new MensajeResponseDTO(e.getMessage()))
+                    .build();
+        }
+    }
+
+    //Fotos Residencia
+    @POST
+    @Path("/{userId}/fotos-residencia")
+    @Consumes(MediaType.MULTIPART_FORM_DATA)
+    public Response subirFotosResidencia(
+            @PathParam("userId") Long userId,
+            @MultipartForm FotosResidenciaForm form
+    ) {
+        try {
+            List<String> urls = perfilService.subirFotosResidencia(userId, form.files);
+            return Response.ok(urls).build();
+        } catch (Exception e) {
+            return Response.status(Response.Status.BAD_REQUEST)
+                    .entity(new MensajeResponseDTO(e.getMessage()))
+                    .build();
+        }
     }
 
 }

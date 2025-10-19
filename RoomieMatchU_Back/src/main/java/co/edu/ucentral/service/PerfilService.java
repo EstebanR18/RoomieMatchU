@@ -5,34 +5,35 @@ import co.edu.ucentral.dto.PerfilTengoLugarRequestDTO;
 import co.edu.ucentral.entity.PerfilBuscoLugarEntity;
 import co.edu.ucentral.entity.PerfilTengoLugarEntity;
 import co.edu.ucentral.entity.UserEntity;
+import co.edu.ucentral.repository.FotoResidenciaRepository;
 import co.edu.ucentral.repository.PerfilBuscoLugarRepository;
 import co.edu.ucentral.repository.PerfilTengoLugarRepository;
 import co.edu.ucentral.repository.UserRepository;
+import org.jboss.resteasy.reactive.multipart.FileUpload;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import jakarta.transaction.Transactional;
+import java.util.List;
 import java.time.LocalDate;
 
 @ApplicationScoped
 public class PerfilService {
 
-    @Inject
-    UserRepository userRepository;
+    @Inject UserRepository userRepository;
+    @Inject PerfilBuscoLugarRepository perfilBuscoRepo;
+    @Inject PerfilTengoLugarRepository perfilTengoRepo;
+    @Inject FotoResidenciaRepository fotoRepo;
+    @Inject S3Uploader s3Uploader;
 
-    @Inject
-    PerfilBuscoLugarRepository perfilBuscoRepo;
 
-    @Inject
-    PerfilTengoLugarRepository perfilTengoRepo;
-
-    // Validación común de edad
+    // ------------------ VALIDACIÓN ------------------
     private void validarEdad(LocalDate fechaNacimiento) {
         if (fechaNacimiento == null || fechaNacimiento.plusYears(18).isAfter(LocalDate.now())) {
             throw new RuntimeException("Debe ser mayor de 18 años");
         }
     }
 
-    // Crear perfil "Busco un lugar"
+    // ------------------ CREAR PERFIL BUSCO ------------------
     @Transactional
     public void crearPerfilBusco(Long userId, PerfilBuscoLugarRequestDTO data) {
         UserEntity user = userRepository.findById(userId);
@@ -47,6 +48,15 @@ public class PerfilService {
         entity.setPresupuesto(data.getPresupuesto());
         entity.setBarrio(data.getBarrio());
         entity.setHabitos(data.getHabitos());
+
+        // Nuevos
+        entity.setTipoHabitacion(data.getTipoHabitacion());
+        entity.setTiempoEstancia(data.getTiempoEstancia());
+        entity.setPersonasConvivencia(data.getPersonasConvivencia());
+        entity.setFechaMudanza(data.getFechaMudanza());
+        entity.setServiciosDeseados(data.getServiciosDeseados());
+
+        // Opcionales
         entity.setGenero(data.getGenero());
         entity.setFuma(data.getFuma());
         entity.setAlergico(data.getAlergico());
@@ -62,7 +72,7 @@ public class PerfilService {
         userRepository.persist(user);
     }
 
-    // Crear perfil "Tengo un lugar"
+    // ------------------ CREAR PERFIL TENGO ------------------
     @Transactional
     public void crearPerfilTengo(Long userId, PerfilTengoLugarRequestDTO data) {
         UserEntity user = userRepository.findById(userId);
@@ -79,6 +89,7 @@ public class PerfilService {
         entity.setMaxRoomies(data.getMaxRoomies());
         entity.setBarrio(data.getBarrio());
         entity.setHabitos(data.getHabitos());
+        // Opcionales
         entity.setGenero(data.getGenero());
         entity.setFuma(data.getFuma());
         entity.setAlergico(data.getAlergico());
@@ -96,7 +107,7 @@ public class PerfilService {
         userRepository.persist(user);
     }
 
-    // Editar perfil "Busco un lugar"
+    // ------------------ EDITAR PERFIL BUSCO ------------------
     @Transactional
     public void editarPerfilBusco(Long userId, PerfilBuscoLugarRequestDTO nuevosDatos) {
         PerfilBuscoLugarEntity existente = perfilBuscoRepo.findByUserId(userId);
@@ -109,6 +120,11 @@ public class PerfilService {
         existente.setPresupuesto(nuevosDatos.getPresupuesto());
         existente.setBarrio(nuevosDatos.getBarrio());
         existente.setHabitos(nuevosDatos.getHabitos());
+        existente.setTipoHabitacion(nuevosDatos.getTipoHabitacion());
+        existente.setTiempoEstancia(nuevosDatos.getTiempoEstancia());
+        existente.setPersonasConvivencia(nuevosDatos.getPersonasConvivencia());
+        existente.setFechaMudanza(nuevosDatos.getFechaMudanza());
+        existente.setServiciosDeseados(nuevosDatos.getServiciosDeseados());
         existente.setGenero(nuevosDatos.getGenero());
         existente.setFuma(nuevosDatos.getFuma());
         existente.setAlergico(nuevosDatos.getAlergico());
@@ -119,7 +135,7 @@ public class PerfilService {
         existente.setMascota(nuevosDatos.getMascota());
     }
 
-    // Editar perfil "Tengo un lugar"
+    // ------------------ EDITAR PERFIL TENGO ------------------
     @Transactional
     public void editarPerfilTengo(Long userId, PerfilTengoLugarRequestDTO nuevosDatos) {
         PerfilTengoLugarEntity existente = perfilTengoRepo.findByUserId(userId);
@@ -146,7 +162,7 @@ public class PerfilService {
         existente.setMascota(nuevosDatos.getMascota());
     }
 
-    // Cambiar tipo de perfil
+    // ------------------ CAMBIAR TIPO PERFIL ------------------
     @Transactional
     public void cambiarTipoPerfil(Long userId, UserEntity.PerfilTipo nuevoTipo) {
         UserEntity user = userRepository.findById(userId);
@@ -162,6 +178,70 @@ public class PerfilService {
 
         user.setPerfilTipo(nuevoTipo);
         userRepository.persist(user);
+    }
+
+    // ------------------ SUBIR FOTO DE PERFIL (S3) ------------------
+    @Transactional
+    public String subirFotoPerfil(Long userId, FileUpload fileUpload) {
+        UserEntity user = userRepository.findById(userId);
+        if (user == null) throw new RuntimeException("Usuario no encontrado");
+
+        String key = "perfiles/" + userId + "/" + fileUpload.fileName();
+        String url = s3Uploader.uploadFile(fileUpload.uploadedFile().toPath(), key);
+
+        if (user.getPerfilTipo() == UserEntity.PerfilTipo.BUSCO_LUGAR) {
+            PerfilBuscoLugarEntity perfil = perfilBuscoRepo.findByUserId(userId);
+            if (perfil == null) throw new RuntimeException("Perfil 'Busco' no encontrado");
+            perfil.setFotoPerfil(url);
+        } else if (user.getPerfilTipo() == UserEntity.PerfilTipo.TENGO_LUGAR) {
+            PerfilTengoLugarEntity perfil = perfilTengoRepo.findByUserId(userId);
+            if (perfil == null) throw new RuntimeException("Perfil 'Tengo' no encontrado");
+            perfil.setFotoPerfil(url);
+        } else {
+            throw new RuntimeException("Usuario no tiene tipo de perfil asignado");
+        }
+
+        return url;
+    }
+
+    // ------------------ SUBIR FOTOS DE RESIDENCIA (S3) ------------------
+    @Transactional
+    public List<String> subirFotosResidencia(Long userId, List<FileUpload> files) {
+        if (files == null || files.isEmpty()) {
+            throw new RuntimeException("No se recibieron archivos");
+        }
+
+        UserEntity user = userRepository.findById(userId);
+        if (user == null) throw new RuntimeException("Usuario no encontrado");
+
+        PerfilBuscoLugarEntity perfilBusco = perfilBuscoRepo.findByUserId(userId);
+        PerfilTengoLugarEntity perfilTengo = perfilTengoRepo.findByUserId(userId);
+
+        if (perfilBusco == null && perfilTengo == null) {
+            throw new RuntimeException("El usuario no tiene un perfil creado");
+        }
+
+        List<String> urls = new ArrayList<>();
+        for (FileUpload fileUpload : files) {
+            String key = "residencias/" + userId + "/" + fileUpload.fileName();
+            String url = s3Uploader.uploadFile(fileUpload.uploadedFile().toPath(), key);
+
+            FotoResidenciaEntity foto = FotoResidenciaEntity.builder()
+                    .url(url)
+                    .filename(fileUpload.fileName())
+                    .build();
+
+            if (perfilTengo != null) {
+                foto.setPerfilTengo(perfilTengo);
+                fotoRepo.persist(foto);
+            } else {
+                foto.setPerfilBusco(perfilBusco);
+                fotoRepo.persist(foto);
+            }
+
+            urls.add(url);
+        }
+        return urls;
     }
 }
 

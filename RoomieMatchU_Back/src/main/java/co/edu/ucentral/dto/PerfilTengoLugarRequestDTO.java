@@ -16,7 +16,7 @@ public class PerfilTengoLugarRequestDTO {
     private String barrio;
     private String habitos;
 
-    // Opcionales
+    // Opcionales existentes
     private String genero;
     private Boolean fuma;
     private Boolean alergico;
@@ -27,5 +27,7 @@ public class PerfilTengoLugarRequestDTO {
     private String reglasConvivencia;
     private String serviciosIncluidos;
     private Boolean mascota;
+
+    // Nota: las fotos se añadirán mediante endpoints multipart y quedan almacenadas en la entidad FotoResidenciaEntity
 }
 
