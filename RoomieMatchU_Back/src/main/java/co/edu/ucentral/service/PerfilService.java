@@ -2,6 +2,7 @@ package co.edu.ucentral.service;
 
 import co.edu.ucentral.dto.PerfilBuscoLugarRequestDTO;
 import co.edu.ucentral.dto.PerfilTengoLugarRequestDTO;
+import co.edu.ucentral.entity.FotoResidenciaEntity;
 import co.edu.ucentral.entity.PerfilBuscoLugarEntity;
 import co.edu.ucentral.entity.PerfilTengoLugarEntity;
 import co.edu.ucentral.entity.UserEntity;
@@ -9,10 +10,13 @@ import co.edu.ucentral.repository.FotoResidenciaRepository;
 import co.edu.ucentral.repository.PerfilBuscoLugarRepository;
 import co.edu.ucentral.repository.PerfilTengoLugarRepository;
 import co.edu.ucentral.repository.UserRepository;
+import co.edu.ucentral.storage.S3Uploader;
 import org.jboss.resteasy.reactive.multipart.FileUpload;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import jakarta.transaction.Transactional;
+
+import java.util.ArrayList;
 import java.util.List;
 import java.time.LocalDate;
 
@@ -187,7 +191,7 @@ public class PerfilService {
         if (user == null) throw new RuntimeException("Usuario no encontrado");
 
         String key = "perfiles/" + userId + "/" + fileUpload.fileName();
-        String url = s3Uploader.uploadFile(fileUpload.uploadedFile().toPath(), key);
+        String url = s3Uploader.uploadFile(fileUpload.uploadedFile(), key);
 
         if (user.getPerfilTipo() == UserEntity.PerfilTipo.BUSCO_LUGAR) {
             PerfilBuscoLugarEntity perfil = perfilBuscoRepo.findByUserId(userId);
@@ -224,8 +228,7 @@ public class PerfilService {
         List<String> urls = new ArrayList<>();
         for (FileUpload fileUpload : files) {
             String key = "residencias/" + userId + "/" + fileUpload.fileName();
-            String url = s3Uploader.uploadFile(fileUpload.uploadedFile().toPath(), key);
-
+            String url = s3Uploader.uploadFile(fileUpload.uploadedFile(), key);
             FotoResidenciaEntity foto = FotoResidenciaEntity.builder()
                     .url(url)
                     .filename(fileUpload.fileName())
