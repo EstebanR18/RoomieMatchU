@@ -1,9 +1,9 @@
 package com.example.approomiematchu.data.remote.api
 
 import retrofit2.Response
-import retrofit2.http.Body
-import retrofit2.http.POST
+import retrofit2.http.*
 import com.example.approomiematchu.data.remote.dto.*
+import okhttp3.MultipartBody
 
 interface ApiService {
 
@@ -21,4 +21,30 @@ interface ApiService {
 
     @POST("/api/password/reset")
     suspend fun resetPassword(@Body request: NewPasswordRequest): Response<ApiMessageResponse>
+
+    @POST("/api/perfil/busco-lugar/{userId}")
+    suspend fun crearPerfilBuscoLugar(
+        @Path("userId") userId: Long,
+        @Body request: PerfilBuscoLugarRequest
+    ): Response<ApiMessageResponse>
+
+    @POST("/api/perfil/tengo-lugar/{userId}")
+    suspend fun crearPerfilTengoLugar(
+        @Path("userId") userId: Long,
+        @Body request: PerfilTengoLugarRequest
+    ): Response<ApiMessageResponse>
+
+    @Multipart
+    @POST("/api/perfil/{userId}/foto-perfil")
+    suspend fun subirFotoPerfil(
+        @Path("userId") userId: Long,
+        @Part foto: MultipartBody.Part
+    ): Response<UploadResponse>
+
+    @Multipart
+    @POST("/api/perfil/{userId}/fotos-residencia")
+    suspend fun subirFotosResidencia(
+        @Path("userId") userId: Long,
+        @Part files: List<MultipartBody.Part>
+    ): Response<UploadResponse>
 }

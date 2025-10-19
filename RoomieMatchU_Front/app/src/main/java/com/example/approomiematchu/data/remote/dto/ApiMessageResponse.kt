@@ -1,5 +1,6 @@
 package com.example.approomiematchu.data.remote.dto
 
 data class ApiMessageResponse(
-    val mensaje: String? = null
+    val message: String?,
+    val data: Any? = null
 )
