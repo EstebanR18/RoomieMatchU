@@ -17,14 +17,14 @@ public class S3Uploader {
 
     private final S3Client s3Client;
 
-    @ConfigProperty(name = "aws.s3.bucket-name")
+    @ConfigProperty(name = "app.s3.bucket")
     String bucketName;
 
     @Inject
     public S3Uploader(
-            @ConfigProperty(name = "aws.access-key-id") String accessKey,
-            @ConfigProperty(name = "aws.secret-access-key") String secretKey,
-            @ConfigProperty(name = "aws.region") String region
+            @ConfigProperty(name = "quarkus.s3.aws.credentials.static-provider.access-key-id") String accessKey,
+            @ConfigProperty(name = "quarkus.s3.aws.credentials.static-provider.secret-access-key") String secretKey,
+            @ConfigProperty(name = "quarkus.s3.aws.region") String region
     ) {
         if (accessKey == null || secretKey == null) {
             throw new ConfigurationException("Credenciales AWS no configuradas");

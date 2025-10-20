@@ -1,8 +1,6 @@
 package co.edu.ucentral.controller;
 
 import co.edu.ucentral.dto.*;
-import co.edu.ucentral.dto.multipart.FotoPerfilForm;
-import co.edu.ucentral.dto.multipart.FotosResidenciaForm;
 import co.edu.ucentral.entity.FotoResidenciaEntity;
 import co.edu.ucentral.entity.UserEntity;
 import co.edu.ucentral.repository.PerfilBuscoLugarRepository;
@@ -13,7 +11,9 @@ import jakarta.inject.Inject;
 import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
-import org.jboss.resteasy.annotations.providers.multipart.MultipartForm;
+import org.jboss.resteasy.reactive.RestForm;
+import org.jboss.resteasy.reactive.multipart.FileUpload;
+
 import java.util.List;
 
 @Path("/api/perfil")
@@ -202,10 +202,10 @@ public class PerfilController {
     @Consumes(MediaType.MULTIPART_FORM_DATA)
     public Response subirFotoPerfil(
             @PathParam("userId") Long userId,
-            @MultipartForm FotoPerfilForm form
+            @RestForm("file") FileUpload file // Cambio aquí
     ) {
         try {
-            String url = perfilService.subirFotoPerfil(userId, form.file);
+            String url = perfilService.subirFotoPerfil(userId, file);
             return Response.ok(url).build();
         } catch (Exception e) {
             return Response.status(Response.Status.BAD_REQUEST)
@@ -220,10 +220,10 @@ public class PerfilController {
     @Consumes(MediaType.MULTIPART_FORM_DATA)
     public Response subirFotosResidencia(
             @PathParam("userId") Long userId,
-            @MultipartForm FotosResidenciaForm form
+            @RestForm("files") List<FileUpload> files
     ) {
         try {
-            List<String> urls = perfilService.subirFotosResidencia(userId, form.files);
+            List<String> urls = perfilService.subirFotosResidencia(userId, files);
             return Response.ok(urls).build();
         } catch (Exception e) {
             return Response.status(Response.Status.BAD_REQUEST)
@@ -231,7 +231,6 @@ public class PerfilController {
                     .build();
         }
     }
-
 }
 
 
