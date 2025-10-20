@@ -78,9 +78,13 @@ fun WhiteTextField(placeholder: String, modifier: Modifier = Modifier) {
 }
 
 @Composable
-fun WhiteOutlinedButton(text: String, modifier: Modifier = Modifier) {
+fun WhiteOutlinedButton(
+    text: String,
+    modifier: Modifier = Modifier,
+    onClick: () -> Unit
+) {
     OutlinedButton(
-        onClick = {},
+        onClick = onClick,
         modifier = modifier,
         shape = RoundedCornerShape(20.dp),
         colors = ButtonDefaults.outlinedButtonColors(
@@ -91,6 +95,7 @@ fun WhiteOutlinedButton(text: String, modifier: Modifier = Modifier) {
         Text(text, textAlign = TextAlign.Center)
     }
 }
+
 
 @Composable
 fun QuestionWithIcon(icon: ImageVector, text: String) {

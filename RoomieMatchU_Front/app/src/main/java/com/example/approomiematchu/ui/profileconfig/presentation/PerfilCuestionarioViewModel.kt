@@ -8,6 +8,10 @@ import com.example.approomiematchu.data.remote.dto.PerfilTengoLugarRequest
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
+import okhttp3.MediaType.Companion.toMediaTypeOrNull
+import okhttp3.MultipartBody
+import okhttp3.RequestBody.Companion.asRequestBody
+
 
 class PerfilCuestionarioViewModel(
     private val api: ApiService
@@ -139,15 +143,6 @@ class PerfilCuestionarioViewModel(
         _state.value = _state.value.copy(serviciosIncluidos = servicios)
     }
 
-    // -------------------------
-    // FOTOS DE RESIDENCIA
-    // -------------------------
-    fun agregarFotoResidencia(url: String) {
-        val lista = _state.value.fotosResidencia.toMutableList()
-        lista.add(url)
-        _state.value = _state.value.copy(fotosResidencia = lista)
-    }
-
     //------------------------------
     // ENVÍO DE PERFIL AL BACKEND
     //------------------------------
@@ -221,4 +216,82 @@ class PerfilCuestionarioViewModel(
             }
         }
     }
+
+    // -------------------------
+    // SUBIDA DE FOTOS
+    // -------------------------
+
+    fun subirFotoPerfil(file: java.io.File, onSuccess: (String) -> Unit, onError: (String) -> Unit) {
+        viewModelScope.launch {
+            try {
+                _state.value = _state.value.copy(isLoading = true)
+
+                val requestFile = file.asRequestBody("image/*".toMediaTypeOrNull())
+                val body = MultipartBody.Part.createFormData(
+                    name = "file", // 👈 debe coincidir con @RestForm("file") del backend
+                    filename = file.name,
+                    body = requestFile
+                )
+
+                val response = api.subirFotoPerfil(_state.value.userId, body)
+
+                if (response.isSuccessful) {
+                    val url = response.body()?.url ?: ""
+                    _state.value = _state.value.copy(
+                        fotoPerfilUrl = url,
+                        isLoading = false
+                    )
+                    onSuccess(url)
+                } else {
+                    onError("Error al subir foto: ${response.message()}")
+                }
+            } catch (e: Exception) {
+                onError(e.localizedMessage ?: "Error inesperado")
+            } finally {
+                _state.value = _state.value.copy(isLoading = false)
+            }
+        }
+    }
+
+    fun subirFotosResidencia(files: List<java.io.File>, onSuccess: (List<String>) -> Unit, onError: (String) -> Unit) {
+        viewModelScope.launch {
+            try {
+                _state.value = _state.value.copy(isLoading = true)
+
+                val parts = files.map { file ->
+                    val body = file.asRequestBody("image/*".toMediaTypeOrNull())
+                    MultipartBody.Part.createFormData(
+                        name = "files", // 👈 debe coincidir con @RestForm("files")
+                        filename = file.name,
+                        body = body
+                    )
+                }
+
+                val response = api.subirFotosResidencia(_state.value.userId, parts)
+
+                if (response.isSuccessful) {
+                    val urls = response.body()?.urls ?: emptyList()
+                    val nuevasFotos = _state.value.fotosResidencia + urls
+                    _state.value = _state.value.copy(fotosResidencia = nuevasFotos)
+                    onSuccess(urls)
+                } else {
+                    onError("Error al subir fotos: ${response.message()}")
+                }
+            } catch (e: Exception) {
+                onError(e.localizedMessage ?: "Error inesperado")
+            } finally {
+                _state.value = _state.value.copy(isLoading = false)
+            }
+        }
+    }
+
+    fun agregarFotoResidenciaLocal(uri: String) {
+        val lista = _state.value.fotosResidencia.toMutableList()
+        if (!lista.contains(uri)) { // evita duplicados
+            lista.add(uri)
+            _state.value = _state.value.copy(fotosResidencia = lista)
+        }
+    }
+
+
 }

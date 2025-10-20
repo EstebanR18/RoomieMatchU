@@ -38,7 +38,7 @@ interface ApiService {
     @POST("/api/perfil/{userId}/foto-perfil")
     suspend fun subirFotoPerfil(
         @Path("userId") userId: Long,
-        @Part foto: MultipartBody.Part
+        @Part file: MultipartBody.Part
     ): Response<UploadResponse>
 
     @Multipart

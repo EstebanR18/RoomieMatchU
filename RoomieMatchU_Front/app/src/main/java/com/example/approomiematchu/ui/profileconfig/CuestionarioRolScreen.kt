@@ -7,6 +7,11 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.ContentScale
@@ -15,10 +20,20 @@ import androidx.compose.ui.text.style.TextAlign
 import com.example.approomiematchu.R
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.navigation.NavController
+import com.example.approomiematchu.navigation.NavigationUtils
+import com.example.approomiematchu.ui.profileconfig.presentation.PerfilCuestionarioViewModel
+import com.example.approomiematchu.ui.profileconfig.presentation.TipoPerfil
 import com.example.approomiematchu.ui.theme.RoomieMatchUTheme
 
 @Composable
-fun CuestionarioRolScreen() {
+fun CuestionarioRolScreen(
+    navController: NavController,
+    viewModel: PerfilCuestionarioViewModel
+) {
+    val state by viewModel.state.collectAsState()
+    var selectedOption by remember { mutableStateOf<TipoPerfil?>(state.tipoPerfil.takeIf { it != TipoPerfil.NONE }) }
+
     CuestionarioBackground {
         val colors = MaterialTheme.colorScheme
         val typography = MaterialTheme.typography
@@ -30,7 +45,8 @@ fun CuestionarioRolScreen() {
                 .verticalScroll(rememberScrollState()),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            ProgressDots(current = 4) // Paso 4
+            // 🔹 Indicador de progreso
+            ProgressDots(current = 1)
 
             Spacer(modifier = Modifier.height(30.dp))
             Text(
@@ -49,32 +65,36 @@ fun CuestionarioRolScreen() {
 
             Spacer(modifier = Modifier.height(16.dp))
 
-
             // ---- Tengo casa ----
-                    Image(
-                        painter = painterResource(id = R.drawable.ic_tengo_casa),
-                        contentDescription = "Tengo casa",
-                        modifier = Modifier
-                            .size(150.dp)
-                            .padding(bottom = 8.dp),
-                        contentScale = ContentScale.Fit
-                    )
+            Image(
+                painter = painterResource(id = R.drawable.ic_tengo_casa),
+                contentDescription = "Tengo casa",
+                modifier = Modifier
+                    .size(150.dp)
+                    .padding(bottom = 8.dp),
+                contentScale = ContentScale.Fit
+            )
             Button(
-                onClick = {},
+                onClick = {
+                    selectedOption = TipoPerfil.TENGO_LUGAR
+                    viewModel.setTipoPerfil(TipoPerfil.TENGO_LUGAR)
+                },
                 shape = RoundedCornerShape(26.dp),
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(horizontal = 60.dp),
                 colors = ButtonDefaults.buttonColors(
-                    containerColor = MaterialTheme.colorScheme.onPrimary,
-                    contentColor = MaterialTheme.colorScheme.primary
+                    containerColor = if (selectedOption == TipoPerfil.TENGO_LUGAR)
+                        MaterialTheme.colorScheme.primary
+                    else
+                        MaterialTheme.colorScheme.secondary
                 )
             ) {
                 Text(
                     "Tengo casa (debes ser propietario)",
                     modifier = Modifier.fillMaxWidth(),
                     textAlign = TextAlign.Center,
-                    style = MaterialTheme.typography. headlineMedium
+                    style = typography.headlineMedium
                 )
             }
 
@@ -90,21 +110,26 @@ fun CuestionarioRolScreen() {
                 contentScale = ContentScale.Fit
             )
             Button(
-                onClick = {},
+                onClick = {
+                    selectedOption = TipoPerfil.BUSCO_LUGAR
+                    viewModel.setTipoPerfil(TipoPerfil.BUSCO_LUGAR)
+                },
                 shape = RoundedCornerShape(20.dp),
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(horizontal = 60.dp),
                 colors = ButtonDefaults.buttonColors(
-                    containerColor = MaterialTheme.colorScheme.onPrimary,
-                    contentColor = MaterialTheme.colorScheme.primary
+                    containerColor = if (selectedOption == TipoPerfil.BUSCO_LUGAR)
+                        MaterialTheme.colorScheme.primary
+                    else
+                        MaterialTheme.colorScheme.secondary
                 )
             ) {
                 Text(
                     "Busco casa",
                     modifier = Modifier.fillMaxWidth(),
                     textAlign = TextAlign.Center,
-                    style = MaterialTheme.typography. headlineMedium
+                    style = typography.headlineMedium
                 )
             }
 
@@ -112,7 +137,16 @@ fun CuestionarioRolScreen() {
 
             // ---- Botón de siguiente ----
             Button(
-                onClick = {},
+                onClick = {
+                    // Avanza al siguiente paso
+                    viewModel.avanzarPaso()
+                    NavigationUtils.navigateToNextStep(
+                        navController = navController,
+                        tipoPerfil = selectedOption ?: TipoPerfil.NONE,
+                        pasoActual = 1
+                    )
+                },
+                enabled = selectedOption != null,
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(top = 24.dp),
@@ -120,7 +154,7 @@ fun CuestionarioRolScreen() {
             ) {
                 Text(
                     "SIGUIENTE",
-                    style = MaterialTheme.typography. headlineMedium,
+                    style = typography.headlineMedium,
                     textAlign = TextAlign.Center
                 )
             }
@@ -128,6 +162,8 @@ fun CuestionarioRolScreen() {
     }
 }
 
+/*
 @Preview(showBackground = true, widthDp = 360, heightDp = 800)
 @Composable
 fun PreviewCuestionarioRolScreen() = RoomieMatchUTheme { CuestionarioRolScreen() }
+ */
