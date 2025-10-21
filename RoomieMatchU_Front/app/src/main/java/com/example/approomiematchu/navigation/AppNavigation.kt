@@ -8,18 +8,22 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
+import com.example.approomiematchu.data.remote.RetrofitClient
 import com.example.approomiematchu.ui.HomeScreen
 import com.example.approomiematchu.ui.authentication.*
 import com.example.approomiematchu.ui.LandingScreen
 import com.example.approomiematchu.ui.ProfileScreen
 import com.example.approomiematchu.ui.profileconfig.*
 import com.example.approomiematchu.ui.profileconfig.presentation.PerfilCuestionarioViewModel
+import com.example.approomiematchu.ui.profileconfig.presentation.PerfilCuestionarioViewModelFactory
 
 @Composable
 fun AppNavigation(modifier: Modifier = Modifier) {
     val navController = rememberNavController()
     val passwordViewModel: PasswordResetViewModel = viewModel()
-    val perfilCuestionarioViewModel: PerfilCuestionarioViewModel = viewModel()
+    val perfilCuestionarioViewModel: PerfilCuestionarioViewModel = viewModel(
+        factory = PerfilCuestionarioViewModelFactory(RetrofitClient.instance)
+    )
     val authViewModel: AuthViewModel = viewModel()
 
     NavHost(

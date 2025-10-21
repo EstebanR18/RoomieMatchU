@@ -22,6 +22,7 @@ import com.example.approomiematchu.R
 import com.example.approomiematchu.navigation.AppScreens
 import com.example.approomiematchu.navigation.NavigationUtils
 import com.example.approomiematchu.ui.profileconfig.presentation.PerfilCuestionarioViewModel
+import com.example.approomiematchu.ui.profileconfig.presentation.TipoPerfil
 import com.example.approomiematchu.ui.theme.AppTypography
 import com.example.approomiematchu.ui.theme.RoomieMatchUTheme
 import com.example.approomiematchu.utils.rememberImagePicker
@@ -35,7 +36,12 @@ fun CuestionarioFotoCasaScreen(
     val imagePicker = rememberImagePicker { uri ->
         uri?.let {
             viewModel.agregarFotoResidenciaLocal(it.toString())
-            NavigationUtils.navigateToScreen(navController, AppScreens.SubirFotos.route)
+            viewModel.avanzarPaso()
+            NavigationUtils.navigateToNextStep(
+                navController = navController,
+                tipoPerfil = TipoPerfil.TENGO_LUGAR,
+                pasoActual = 7
+            )
         }
     }
 
@@ -59,7 +65,7 @@ fun CuestionarioFotoCasaScreen(
             verticalArrangement = Arrangement.SpaceBetween,
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            ProgressDots(current = 7)
+            ProgressDots(total = 8, current = 7)
 
             Column(
                 modifier = Modifier

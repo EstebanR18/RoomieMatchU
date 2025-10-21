@@ -29,7 +29,6 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
-import com.example.approomiematchu.navigation.AppScreens
 import com.example.approomiematchu.navigation.NavigationUtils
 import com.example.approomiematchu.ui.profileconfig.presentation.PerfilCuestionarioViewModel
 import com.example.approomiematchu.ui.theme.RoomieMatchUTheme
@@ -61,7 +60,7 @@ fun Cuestionario2Screen(
                 .padding(24.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            ProgressDots(current = 3)
+            ProgressDots(total = 8, current = 3)
 
             Spacer(modifier = Modifier.height(30.dp))
             Text("TU ESTILO DE VIDA", style = typography.displayLarge, color = colors.onBackground)
@@ -78,6 +77,7 @@ fun Cuestionario2Screen(
             // ---- ¿Fumas? ----
             QuestionWithIcon(icon = Icons.Default.SmokingRooms, text = "¿Fumas?")
             YesNoButtons(
+                selectedOption = fuma,
                 onYes = { fuma = true; viewModel.actualizarFuma(true) },
                 onNo = { fuma = false; viewModel.actualizarFuma(false) }
             )
@@ -85,6 +85,7 @@ fun Cuestionario2Screen(
             // ---- ¿Eres alérgico? ----
             QuestionWithIcon(icon = Icons.Default.Healing, text = "¿Eres alérgico a algo?")
             YesNoButtons(
+                selectedOption = alergico,
                 onYes = { alergico = true; viewModel.actualizarAlergico(true, detalleAlergia) },
                 onNo = { alergico = false; detalleAlergia = ""; viewModel.actualizarAlergico(false, null) }
             )
@@ -103,6 +104,7 @@ fun Cuestionario2Screen(
             // ---- ¿Tienes mascotas? ----
             QuestionWithIcon(icon = Icons.Default.Pets, text = "¿Tienes mascotas?")
             YesNoButtons(
+                selectedOption = mascota,
                 onYes = { mascota = true; viewModel.actualizarMascota(true) },
                 onNo = { mascota = false; viewModel.actualizarMascota(false) }
             )
@@ -110,6 +112,7 @@ fun Cuestionario2Screen(
             // ---- ¿Dispuesto a vivir con mascotas? ----
             QuestionWithIcon(icon = Icons.Default.Home, text = "¿Estás dispuesto a vivir con mascotas?")
             YesNoButtons(
+                selectedOption = dispuestoMascotas,
                 onYes = { dispuestoMascotas = true },
                 onNo = { dispuestoMascotas = false }
             )

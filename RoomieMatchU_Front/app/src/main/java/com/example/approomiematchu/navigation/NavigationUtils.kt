@@ -73,7 +73,10 @@ object NavigationUtils {
             else -> AppScreens.CuestionarioRol.route
         }
 
-        navController.navigate(nextRoute)
+        navController.navigate(nextRoute) {
+            // Mantener el estado en el backstack
+            launchSingleTop = true
+        }
     }
 
 
@@ -109,6 +112,10 @@ object NavigationUtils {
             else -> AppScreens.LandingScreen.route
         }
 
-        navController.navigate(previousRoute)
+        navController.navigate(previousRoute) {
+            launchSingleTop = true
+            // Restaurar estado al retroceder
+            restoreState = true
+        }
     }
 }

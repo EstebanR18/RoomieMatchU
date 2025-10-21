@@ -13,6 +13,11 @@ interface ApiService {
     @POST("/api/users/register")
     suspend fun register(@Body request: RegisterRequest): Response<RegisterResponse>
 
+    @GET("/api/users/{id}")
+    suspend fun getUserById(
+        @Path("id") userId: Long
+    ): Response<UserResponse>
+
     @POST("/api/password/request")
     suspend fun requestPasswordReset(@Body request: ResetEmailRequest): Response<ApiMessageResponse>
 

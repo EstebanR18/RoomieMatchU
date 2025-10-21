@@ -25,6 +25,7 @@ import androidx.navigation.NavController
 import coil3.compose.AsyncImage
 import com.example.approomiematchu.navigation.NavigationUtils
 import com.example.approomiematchu.ui.profileconfig.presentation.PerfilCuestionarioViewModel
+import com.example.approomiematchu.ui.profileconfig.presentation.TipoPerfil
 import com.example.approomiematchu.ui.theme.RoomieMatchUTheme
 import com.example.approomiematchu.utils.rememberImagePicker
 
@@ -37,7 +38,7 @@ fun SubirFotosScreen(
     val state by viewModel.state.collectAsState()
     val imagePicker = rememberImagePicker { uri ->
         uri?.let {
-            if (state.fotosResidencia.size < 5) {
+            if (state.fotosResidencia.size < 6) {
                 viewModel.agregarFotoResidenciaLocal(it.toString())
             }
         }
@@ -53,13 +54,15 @@ fun SubirFotosScreen(
                 .padding(horizontal = 24.dp, vertical = 16.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
+            // ----- Parte superior -----
             Column(
                 modifier = Modifier
                     .weight(1f)
                     .fillMaxWidth(),
-                horizontalAlignment = Alignment.CenterHorizontally
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.Top
             ) {
-                ProgressDots(current = 7)
+                ProgressDots(total = 8, current = 8)
                 Spacer(modifier = Modifier.height(30.dp))
 
                 Text(
@@ -79,21 +82,23 @@ fun SubirFotosScreen(
 
                 Spacer(modifier = Modifier.height(32.dp))
 
+                // ------- Contenedor de Fotos -------
                 PhotosGrid(
                     photos = state.fotosResidencia,
                     onAddPhoto = {
-                        if (state.fotosResidencia.size < 5) imagePicker.launch()
+                        if (state.fotosResidencia.size < 6) imagePicker.launch()
                     }
                 )
             }
 
+            // ----- Botón inferior -----
             Button(
                 onClick = {
                     viewModel.avanzarPaso()
                     NavigationUtils.navigateToNextStep(
-                        navController,
-                        state.tipoPerfil,
-                        state.pasoActual
+                        navController = navController,
+                        tipoPerfil = TipoPerfil.TENGO_LUGAR,
+                        pasoActual = 8
                     )
                 },
                 modifier = Modifier
@@ -107,47 +112,101 @@ fun SubirFotosScreen(
     }
 }
 
-// ----------- Grid de Fotos -----------
 
+// ----------- Grid de Fotos -----------
 @Composable
 fun PhotosGrid(
     photos: List<String>,
     onAddPhoto: () -> Unit
 ) {
     val colors = MaterialTheme.colorScheme
+    val photoCount = photos.size
+    val totalSlots = if (photoCount < 6) photoCount + 1 else 6
+    val rows = if (photoCount <= 1) 1 else totalSlots / 3 + if (totalSlots % 3 != 0) 1 else 0
+    var index = 0
 
-    FlowRow(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
-        verticalArrangement = Arrangement.spacedBy(8.dp)
+    Column(
+        verticalArrangement = Arrangement.spacedBy(9.dp),
+        horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        photos.take(5).forEach { uri ->
-            AsyncImage(
-                model = uri,
-                contentDescription = "Foto residencia",
-                modifier = Modifier
-                    .size(110.dp)
-                    .clip(RoundedCornerShape(12.dp))
-                    .border(2.dp, colors.primary, RoundedCornerShape(12.dp)),
-                contentScale = ContentScale.Crop
-            )
-        }
+        repeat(rows) {
+            if (photoCount <= 1) {
+                // ------- Layout de 2 columnas grandes -------
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    if (photoCount > 0) {
+                        AsyncImage(
+                            model = photos.first(),
+                            contentDescription = "Foto residencia",
+                            modifier = Modifier
+                                .size(160.dp, 260.dp)
+                                .clip(RoundedCornerShape(16.dp))
+                                .border(3.dp, colors.primary, RoundedCornerShape(16.dp)),
+                            contentScale = ContentScale.Crop
+                        )
+                    } else {
+                        PhotoFrame(hasImage = false, large = true, borderColor = colors.primary)
+                    }
 
-        if (photos.size < 5) {
-            Box(
-                modifier = Modifier
-                    .size(110.dp)
-                    .clip(RoundedCornerShape(12.dp))
-                    .border(2.dp, colors.primary, RoundedCornerShape(12.dp))
-                    .clickable { onAddPhoto() },
-                contentAlignment = Alignment.Center
-            ) {
-                Icon(
-                    imageVector = Icons.Outlined.AddCircleOutline,
-                    contentDescription = "Agregar foto",
-                    tint = colors.primary,
-                    modifier = Modifier.size(40.dp)
-                )
+                    // Botón para añadir
+                    Box(
+                        modifier = Modifier
+                            .size(160.dp, 260.dp)
+                            .clip(RoundedCornerShape(16.dp))
+                            .border(3.dp, colors.primary, RoundedCornerShape(16.dp))
+                            .clickable { onAddPhoto() },
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            imageVector = Icons.Outlined.AddCircleOutline,
+                            contentDescription = "Agregar foto",
+                            tint = colors.primary,
+                            modifier = Modifier.size(60.dp)
+                        )
+                    }
+                }
+            } else {
+                // ------- Grid normal 3 columnas -------
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    for (i in 0 until 3) {
+                        if (index < totalSlots) {
+                            if (index < photoCount) {
+                                AsyncImage(
+                                    model = photos[index],
+                                    contentDescription = "Foto residencia",
+                                    modifier = Modifier
+                                        .size(110.dp, 170.dp)
+                                        .clip(RoundedCornerShape(16.dp))
+                                        .border(3.dp, colors.primary, RoundedCornerShape(16.dp)),
+                                    contentScale = ContentScale.Crop
+                                )
+                            } else {
+                                // Botón para añadir
+                                Box(
+                                    modifier = Modifier
+                                        .size(110.dp, 170.dp)
+                                        .clip(RoundedCornerShape(16.dp))
+                                        .border(3.dp, colors.primary, RoundedCornerShape(16.dp))
+                                        .clickable { onAddPhoto() },
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Outlined.AddCircleOutline,
+                                        contentDescription = "Agregar foto",
+                                        tint = colors.primary,
+                                        modifier = Modifier.size(40.dp)
+                                    )
+                                }
+                            }
+                            index++
+                        }
+                    }
+                }
             }
         }
     }
@@ -155,7 +214,6 @@ fun PhotosGrid(
 
 
 // ----------- Marco de Foto Individual -----------
-
 @Composable
 fun PhotoFrame(hasImage: Boolean, large: Boolean, borderColor: Color) {
     val frameWidth = if (large) 160.dp else 110.dp

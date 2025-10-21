@@ -1,5 +1,6 @@
 package com.example.approomiematchu.ui.profileconfig
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
@@ -102,23 +103,18 @@ fun WhiteOutlinedButton(
         modifier = modifier,
         shape = RoundedCornerShape(20.dp),
         colors = ButtonDefaults.outlinedButtonColors(
-            containerColor = if (isSelected) colors.primary.copy(alpha = 0.1f) else Color.White,
-            contentColor = if (isSelected) colors.primary else colors.primary
+            containerColor = if (isSelected) colors.primary else Color.White,
+            contentColor = if (isSelected) colors.onPrimary else colors.primary
         ),
-        border = if (isSelected) {
-            ButtonDefaults.outlinedButtonBorder.copy(
-                brush = androidx.compose.ui.graphics.Brush.verticalGradient(
-                    colors = listOf(colors.primary, colors.primary)
-                )
-            )
-        } else {
-            ButtonDefaults.outlinedButtonBorder
-        }
+        border = BorderStroke(
+            width = 1.dp,
+            color = if (isSelected) colors.primary else colors.primary.copy(alpha = 0.4f)
+        )
     ) {
         Text(
             text,
             textAlign = TextAlign.Center,
-            color = if (isSelected) colors.primary else colors.primary
+            color = if (isSelected) colors.onPrimary else colors.primary
         )
     }
 }
@@ -137,6 +133,7 @@ fun QuestionWithIcon(icon: ImageVector, text: String) {
 
 @Composable
 fun YesNoButtons(
+    selectedOption: Boolean? = null,
     onYes: () -> Unit = {},
     onNo: () -> Unit = {}
 ) {
@@ -147,11 +144,13 @@ fun YesNoButtons(
         WhiteOutlinedButton(
             text = "Sí",
             modifier = Modifier.weight(1f),
+            isSelected = selectedOption == true,
             onClick = onYes
         )
         WhiteOutlinedButton(
             text = "No",
             modifier = Modifier.weight(1f),
+            isSelected = selectedOption == false,
             onClick = onNo
         )
     }

@@ -44,8 +44,8 @@ fun CuestionarioRolScreen(
                 .verticalScroll(rememberScrollState()),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            // 🔹 Indicador de progreso
-            ProgressDots(current = 1)
+            // Indicador de progreso
+            ProgressDots(total = 8, current = 1)
 
             Spacer(modifier = Modifier.height(30.dp))
             Text(
@@ -84,9 +84,13 @@ fun CuestionarioRolScreen(
                     .padding(horizontal = 60.dp),
                 colors = ButtonDefaults.buttonColors(
                     containerColor = if (selectedOption == TipoPerfil.TENGO_LUGAR)
-                        MaterialTheme.colorScheme.primary
+                        colors.primary
                     else
-                        MaterialTheme.colorScheme.secondary
+                        colors.surface,
+                    contentColor = if (selectedOption == TipoPerfil.TENGO_LUGAR)
+                        colors.onPrimary
+                    else
+                        colors.primary
                 )
             ) {
                 Text(
@@ -119,9 +123,13 @@ fun CuestionarioRolScreen(
                     .padding(horizontal = 60.dp),
                 colors = ButtonDefaults.buttonColors(
                     containerColor = if (selectedOption == TipoPerfil.BUSCO_LUGAR)
-                        MaterialTheme.colorScheme.primary
+                        colors.primary
                     else
-                        MaterialTheme.colorScheme.secondary
+                        colors.surface,
+                    contentColor = if (selectedOption == TipoPerfil.BUSCO_LUGAR)
+                        colors.onPrimary
+                    else
+                        colors.primary
                 )
             ) {
                 Text(

@@ -63,7 +63,7 @@ fun Cuestionario3Screen(
                 .padding(24.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            ProgressDots(current = 4)
+            ProgressDots(total = 8, current = 4)
 
             Spacer(modifier = Modifier.height(30.dp))
             Text(
@@ -116,6 +116,7 @@ fun Cuestionario3Screen(
                         WhiteOutlinedButton(
                             text = opcion,
                             modifier = Modifier.fillMaxWidth(),
+                            isSelected = tiempoEstancia == opcion,
                             onClick = {
                                 tiempoEstancia = opcion
                                 viewModel.actualizarTiempoEstancia(opcion)

@@ -1,11 +1,13 @@
 package com.example.approomiematchu.ui.profileconfig.presentation
 
+import android.content.Context
 import android.net.Uri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.approomiematchu.data.remote.api.ApiService
 import com.example.approomiematchu.data.remote.dto.PerfilBuscoLugarRequest
 import com.example.approomiematchu.data.remote.dto.PerfilTengoLugarRequest
+import com.example.approomiematchu.utils.uriToFile
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
@@ -181,7 +183,8 @@ class PerfilCuestionarioViewModel(
                 if (resp.isSuccessful) {
                     onSuccess()
                 } else {
-                    onError(resp.message())
+                    val bodyError = resp.errorBody()?.string()
+                    onError("Código: ${resp.code()} - ${resp.message()}\n${bodyError ?: "Sin detalles"}")
                 }
             } catch (e: Exception) {
                 onError(e.localizedMessage ?: "Error")
@@ -228,20 +231,28 @@ class PerfilCuestionarioViewModel(
     // SUBIDA DE FOTOS
     // -------------------------
 
-    fun subirFotoPerfilAlFinal(onSuccess: (String) -> Unit, onError: (String) -> Unit) {
+    fun subirFotoPerfilAlFinal(
+        context: Context,
+        onSuccess: (String) -> Unit,
+        onError: (String) -> Unit
+    ) {
         viewModelScope.launch {
             try {
                 _state.value = _state.value.copy(isLoading = true)
 
                 val localUri = _state.value.fotoPerfilLocalUri
                 if (localUri != null) {
-                    val file = File(Uri.parse(localUri).path ?: "")
-                    if (file.exists()) {
-                        // Crear body
-                        val requestFile = file.asRequestBody("image/*".toMediaTypeOrNull())
+                    // Convertimos correctamente el content:// a un File físico
+                    val file = uriToFile(context, localUri)
+                    if (file != null && file.exists()) {
+                        // Detectar tipo MIME real
+                        val mimeType = context.contentResolver.getType(Uri.parse(localUri)) ?: "image/jpeg"
+
+                        // Crear body con nombre y tipo correctos
+                        val requestFile = file.asRequestBody(mimeType.toMediaTypeOrNull())
                         val body = MultipartBody.Part.createFormData(
-                            name = "file",
-                            filename = file.name,
+                            name = "file",               // Debe coincidir con @RestForm("file")
+                            filename = file.name,        // Requerido por Quarkus
                             body = requestFile
                         )
 
@@ -256,14 +267,13 @@ class PerfilCuestionarioViewModel(
                             )
                             onSuccess(url)
                         } else {
-                            onError("Error al subir foto: ${response.message()}")
+                            onError("Error al subir foto: ${response.errorBody()?.string() ?: response.message()}")
                         }
                     } else {
                         onError("Archivo de imagen no encontrado")
                     }
                 } else {
-                    // Si no hay foto local, continuar igual
-                    onSuccess("")
+                    onSuccess("") // No hay foto, continuar
                 }
             } catch (e: Exception) {
                 onError(e.localizedMessage ?: "Error inesperado")
@@ -272,7 +282,6 @@ class PerfilCuestionarioViewModel(
             }
         }
     }
-
 
     fun subirFotosResidencia(files: List<java.io.File>, onSuccess: (List<String>) -> Unit, onError: (String) -> Unit) {
         viewModelScope.launch {

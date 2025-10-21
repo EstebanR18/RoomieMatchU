@@ -12,6 +12,7 @@ class AuthViewModel(
     private val repository: UserRepository = UserRepository()
 ) : ViewModel() {
 
+    var userId = mutableStateOf<Long?>(null)
     var email = mutableStateOf("")
     var password = mutableStateOf("")
     var fullName = mutableStateOf("")
@@ -35,17 +36,20 @@ class AuthViewModel(
 
             result.onSuccess { response ->
                 errorMessage.value = null
+                val id = response.userId
+                userId.value = id // Guardar ID
 
-                val userId = response.userId
-
-                // Verificamos si ya tiene perfil
-                val tienePerfil = repository.verificarPerfil(userId)
-
-                if (tienePerfil) {
-                    onNavigateToHome()
-                } else {
-                    onNavigateToProfileSetup()
+                // Obtener datos del usuario desde el endpoint
+                val userDataResult = repository.getUserById(id)
+                userDataResult.onSuccess { userData ->
+                    fullName.value = userData.nombreCompleto
+                    username.value = userData.usuario
+                    phone.value = userData.telefono
+                    email.value = userData.correo
                 }
+
+                val tienePerfil = repository.verificarPerfil(id)
+                if (tienePerfil) onNavigateToHome() else onNavigateToProfileSetup()
 
             }.onFailure {
                 errorMessage.value = it.message
@@ -54,7 +58,6 @@ class AuthViewModel(
             isLoading.value = false
         }
     }
-
 
     fun register(onSuccess: () -> Unit) {
         val fullNameValue = fullName.value.trim()

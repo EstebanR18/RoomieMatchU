@@ -1,6 +1,7 @@
 package com.example.approomiematchu.ui.profileconfig
 
 import android.content.Context
+import android.util.Log
 import android.widget.Toast
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -172,72 +173,126 @@ private fun enviarFormularioCompleto(
 ) {
     val state = viewModel.state.value
 
-    // --- Primero subir la foto de perfil si existe ---
-    viewModel.subirFotoPerfilAlFinal(
-        onSuccess = {
-            // Luego subir fotos de residencia si existen
-            val localFiles = state.fotosResidencia.mapNotNull { uri ->
-                uriToFile(context, uri)
-            }
-
-            if (localFiles.isNotEmpty()) {
-                viewModel.subirFotosResidencia(
-                    files = localFiles,
-                    onSuccess = {
-                        enviarPerfilFinal(context, viewModel, navController)
-                    },
-                    onError = { error ->
-                        Toast.makeText(context, "Error al subir fotos: $error", Toast.LENGTH_LONG).show()
-                    }
-                )
-            } else {
-                enviarPerfilFinal(context, viewModel, navController)
-            }
-        },
-        onError = { error ->
-            Toast.makeText(context, "Error al subir foto de perfil: $error", Toast.LENGTH_LONG).show()
-        }
+    Log.d(
+        "PerfilEnvio", """
+        🚀 Iniciando formulario completo
+        User ID: ${state.userId}
+        Tipo perfil: ${state.tipoPerfil}
+        Foto local URI: ${state.fotoPerfilLocalUri}
+        Fotos residencia: ${state.fotosResidencia.size}
+    """.trimIndent()
     )
-}
 
-
-private fun enviarPerfilFinal(
-    context: Context,
-    viewModel: PerfilCuestionarioViewModel,
-    navController: NavController
-) {
-    val state = viewModel.state.value
-
+    // --- 1️⃣ Crear el perfil primero ---
     when (state.tipoPerfil) {
         TipoPerfil.TENGO_LUGAR -> {
+            Log.d("PerfilEnvio", "📦 Creando perfil TENGO_LUGAR...")
+
             viewModel.enviarPerfilTengo(
                 onSuccess = {
-                    Toast.makeText(context, "Perfil enviado correctamente", Toast.LENGTH_SHORT).show()
-                    NavigationUtils.navigateAndClear(navController, AppScreens.HomeScreen.route)
+                    Log.d("PerfilEnvio", "✅ Perfil TENGO_LUGAR creado correctamente.")
+
+                    // --- 2️⃣ Subir la foto de perfil ---
+                    subirFotoPerfilYResidencia(context, viewModel, navController)
                 },
                 onError = { error ->
+                    Log.e("PerfilEnvio", "❌ Error al crear perfil TENGO_LUGAR: $error")
                     Toast.makeText(context, "Error al enviar perfil: $error", Toast.LENGTH_LONG).show()
                 }
             )
         }
 
         TipoPerfil.BUSCO_LUGAR -> {
+            Log.d("PerfilEnvio", "📦 Creando perfil BUSCO_LUGAR...")
+
             viewModel.enviarPerfilBusco(
                 onSuccess = {
-                    Toast.makeText(context, "Perfil enviado correctamente", Toast.LENGTH_SHORT).show()
-                    NavigationUtils.navigateAndClear(navController, AppScreens.HomeScreen.route)
+                    Log.d("PerfilEnvio", "✅ Perfil BUSCO_LUGAR creado correctamente.")
+
+                    // --- 2️⃣ Subir la foto de perfil ---
+                    subirFotoPerfilYResidencia(context, viewModel, navController)
                 },
                 onError = { error ->
+                    Log.e("PerfilEnvio", "❌ Error al crear perfil BUSCO_LUGAR: $error")
                     Toast.makeText(context, "Error al enviar perfil: $error", Toast.LENGTH_LONG).show()
                 }
             )
         }
 
         else -> {
+            Log.e("PerfilEnvio", "⚠️ Tipo de perfil no válido o nulo: ${state.tipoPerfil}")
             Toast.makeText(context, "Tipo de perfil no válido", Toast.LENGTH_SHORT).show()
         }
     }
 }
+
+private fun subirFotoPerfilYResidencia(
+    context: Context,
+    viewModel: PerfilCuestionarioViewModel,
+    navController: NavController
+) {
+    val state = viewModel.state.value
+
+    viewModel.subirFotoPerfilAlFinal(
+        context = context,
+        onSuccess = { fotoUrl ->
+            Log.d("PerfilEnvio", "✅ Foto de perfil subida correctamente: $fotoUrl")
+
+            val localFiles = state.fotosResidencia.mapNotNull { uri ->
+                uriToFile(context, uri)
+            }
+
+            if (localFiles.isNotEmpty()) {
+                Log.d("PerfilEnvio", "📸 Subiendo ${localFiles.size} fotos de residencia...")
+
+                viewModel.subirFotosResidencia(
+                    files = localFiles,
+                    onSuccess = { urls ->
+                        Log.d("PerfilEnvio", "✅ Fotos de residencia subidas: $urls")
+                        finalizarEnvio(context, navController)
+                    },
+                    onError = { error ->
+                        Log.e("PerfilEnvio", "❌ Error al subir fotos de residencia: $error")
+                        Toast.makeText(
+                            context,
+                            "Error al subir fotos: ${error.take(2000)}",
+                            Toast.LENGTH_LONG
+                        ).show()
+                    }
+                )
+            } else {
+                Log.d("PerfilEnvio", "ℹ️ No hay fotos de residencia, finalizando envío.")
+                finalizarEnvio(context, navController)
+            }
+        },
+        onError = { error ->
+            Log.e(
+                "PerfilEnvio", """
+                ❌ Error al subir foto de perfil
+                Mensaje: $error
+                Foto local URI: ${state.fotoPerfilLocalUri}
+                User ID: ${state.userId}
+            """.trimIndent()
+            )
+
+            Toast.makeText(
+                context,
+                "Error al subir foto de perfil: ${error.take(2000)}",
+                Toast.LENGTH_LONG
+            ).show()
+        }
+    )
+}
+
+private fun finalizarEnvio(
+    context: Context,
+    navController: NavController
+) {
+    Toast.makeText(context, "Perfil enviado correctamente", Toast.LENGTH_SHORT).show()
+    Log.d("PerfilEnvio", "🎉 Envío completo: perfil + fotos + foto de perfil.")
+    NavigationUtils.navigateAndClear(navController, AppScreens.HomeScreen.route)
+}
+
 
 /*
 @Preview(showBackground = true, showSystemUi = true)

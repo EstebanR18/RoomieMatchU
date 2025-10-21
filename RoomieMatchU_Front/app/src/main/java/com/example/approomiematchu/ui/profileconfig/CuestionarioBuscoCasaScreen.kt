@@ -226,7 +226,7 @@ fun CuestionarioBuscoCasaScreen(
                         viewModel.avanzarPaso()
                         NavigationUtils.navigateToNextStep(
                             navController = navController,
-                            tipoPerfil = TipoPerfil.BUSCO_LUGAR,
+                            tipoPerfil = state.tipoPerfil,
                             pasoActual = 5
                         )
                     }

@@ -397,7 +397,7 @@ fun RegisterForm(
         Button(
             onClick = {
                 viewModel.register {
-                    navController.navigate(AppScreens.ProfileScreen.route)
+                    navController.navigate(AppScreens.AuthScreen.createRoute(true))
                 }
             },
             modifier = Modifier.fillMaxWidth(),

@@ -17,10 +17,12 @@ import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Wc
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextAlign
@@ -45,6 +47,12 @@ fun Cuestionario1Screen(
     viewModel: PerfilCuestionarioViewModel,
     authViewModel: AuthViewModel
 ) {
+    LaunchedEffect(authViewModel.userId.value) {
+        authViewModel.userId.value?.let { id ->
+            viewModel.setUserId(id)
+        }
+    }
+
     val state by viewModel.state.collectAsState()
     val colors = MaterialTheme.colorScheme
     val typography = MaterialTheme.typography
@@ -65,7 +73,7 @@ fun Cuestionario1Screen(
                 .padding(24.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            ProgressDots(current = 2)
+            ProgressDots(total = 8, current = 2)
 
             Spacer(modifier = Modifier.height(30.dp))
             Text("IDENTIFÍCATE", style = typography.displayLarge, color = colors.onBackground)
@@ -83,7 +91,7 @@ fun Cuestionario1Screen(
             QuestionWithIcon(icon = Icons.Default.Person, text = "Nombre de usuario")
             WhiteTextField(
                 placeholder = "Tu nombre",
-                value = authViewModel.fullName.value,
+                value = authViewModel.username.value,
                 onValueChange = {},
                 enabled = false,
                 modifier = Modifier.fillMaxWidth()
@@ -110,7 +118,7 @@ fun Cuestionario1Screen(
                     modifier = Modifier.weight(1f)
                 )
                 WhiteTextField(
-                    placeholder = "AA",
+                    placeholder = "AAAA",
                     value = anio,
                     onValueChange = { anio = it.filter { ch -> ch.isDigit() }.take(4) },
                     modifier = Modifier.weight(1f)
@@ -129,6 +137,7 @@ fun Cuestionario1Screen(
                     WhiteOutlinedButton(
                         text = opcion,
                         modifier = Modifier.weight(1f),
+                        isSelected = generoSeleccionado == opcion,
                         onClick = {
                             generoSeleccionado = opcion
                             viewModel.actualizarGenero(opcion)
@@ -163,7 +172,8 @@ fun Cuestionario1Screen(
                         }
 
                         else -> {
-                            viewModel.actualizarCampoFechaNacimiento("$anioNum-$mesNum-$diaNum")
+                            val fechaISO = String.format("%04d-%02d-%02d", anioNum, mesNum, diaNum)
+                            viewModel.actualizarCampoFechaNacimiento(fechaISO)
                             viewModel.actualizarGenero(generoSeleccionado!!)
                             viewModel.avanzarPaso()
 

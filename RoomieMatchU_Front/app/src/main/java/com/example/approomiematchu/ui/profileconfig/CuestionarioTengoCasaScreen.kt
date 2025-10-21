@@ -239,7 +239,7 @@ fun CuestionarioTengoCasaScreen(
                         viewModel.avanzarPaso()
                         NavigationUtils.navigateToNextStep(
                             navController = navController,
-                            tipoPerfil = TipoPerfil.TENGO_LUGAR,
+                            tipoPerfil = state.tipoPerfil,
                             pasoActual = 5
                         )
                     }
