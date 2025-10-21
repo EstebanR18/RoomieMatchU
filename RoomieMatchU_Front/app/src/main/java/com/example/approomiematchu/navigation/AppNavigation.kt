@@ -8,6 +8,7 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
+import com.example.approomiematchu.ui.HomeScreen
 import com.example.approomiematchu.ui.authentication.*
 import com.example.approomiematchu.ui.LandingScreen
 import com.example.approomiematchu.ui.ProfileScreen
@@ -19,6 +20,7 @@ fun AppNavigation(modifier: Modifier = Modifier) {
     val navController = rememberNavController()
     val passwordViewModel: PasswordResetViewModel = viewModel()
     val perfilCuestionarioViewModel: PerfilCuestionarioViewModel = viewModel()
+    val authViewModel: AuthViewModel = viewModel()
 
     NavHost(
         navController = navController,
@@ -35,7 +37,7 @@ fun AppNavigation(modifier: Modifier = Modifier) {
             arguments = listOf(navArgument("startInLogin") { type = NavType.BoolType })
         ) { backStackEntry ->
             val startInLogin = backStackEntry.arguments?.getBoolean("startInLogin") ?: true
-            AuthScreen(initialIsLogin = startInLogin, navController = navController)
+            AuthScreen(initialIsLogin = startInLogin, navController = navController, authViewModel = authViewModel)
         }
 
         composable(AppScreens.EnterEmail.route) {
@@ -50,17 +52,17 @@ fun AppNavigation(modifier: Modifier = Modifier) {
             NewPasswordScreen(navController = navController, viewModel = passwordViewModel)
         }
 
+        // ---------- CUESTIONARIO ----------
         composable(AppScreens.ProfileScreen.route) {
             ProfileScreen(navController = navController)
         }
 
-        // ---------- CUESTIONARIO ----------
         composable(AppScreens.CuestionarioRol.route) {
             CuestionarioRolScreen(navController = navController, viewModel = perfilCuestionarioViewModel)
         }
 
         composable(AppScreens.Cuestionario1.route) {
-            Cuestionario1Screen(navController = navController, viewModel = perfilCuestionarioViewModel)
+            Cuestionario1Screen(navController = navController, viewModel = perfilCuestionarioViewModel, authViewModel = authViewModel)
         }
 
         composable(AppScreens.Cuestionario2.route) {
@@ -93,6 +95,11 @@ fun AppNavigation(modifier: Modifier = Modifier) {
 
         composable(AppScreens.CuestionarioCompletado.route) {
             CuestionarioCompletadoScreen(navController = navController, viewModel = perfilCuestionarioViewModel)
+        }
+
+        // ---------- PRINCIPAL ----------
+        composable(AppScreens.HomeScreen.route) {
+            HomeScreen(navController = navController)
         }
     }
 }

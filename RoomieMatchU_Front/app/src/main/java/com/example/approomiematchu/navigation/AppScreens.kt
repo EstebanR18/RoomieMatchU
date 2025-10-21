@@ -25,4 +25,7 @@ sealed class AppScreens(val route: String) {
     object CuestionarioFotoCasa : AppScreens("cuestionario_foto_casa")
     object SubirFotos : AppScreens("subir_fotos")
     object CuestionarioCompletado : AppScreens("cuestionario_completado")
+
+    // ----------- PRINCIPAL -----------
+    object HomeScreen : AppScreens("home_screen")
 }

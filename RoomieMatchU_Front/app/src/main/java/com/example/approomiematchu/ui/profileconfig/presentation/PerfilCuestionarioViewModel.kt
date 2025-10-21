@@ -1,5 +1,6 @@
 package com.example.approomiematchu.ui.profileconfig.presentation
 
+import android.net.Uri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.approomiematchu.data.remote.api.ApiService
@@ -11,6 +12,7 @@ import kotlinx.coroutines.launch
 import okhttp3.MediaType.Companion.toMediaTypeOrNull
 import okhttp3.MultipartBody
 import okhttp3.RequestBody.Companion.asRequestBody
+import java.io.File
 
 
 class PerfilCuestionarioViewModel(
@@ -37,6 +39,10 @@ class PerfilCuestionarioViewModel(
 
     fun actualizarFotoPerfil(url: String) {
         _state.value = _state.value.copy(fotoPerfilUrl = url)
+    }
+
+    fun actualizarFotoPerfilLocal(uri: String) {
+        _state.value = _state.value.copy(fotoPerfilLocalUri = uri)
     }
 
     fun avanzarPaso() {
@@ -89,10 +95,11 @@ class PerfilCuestionarioViewModel(
         _state.value = _state.value.copy(descripcionLibre = descripcion)
     }
 
+
     // -------------------------
     // CAMPOS BUSCO_LUGAR
     // -------------------------
-    fun actualizarPresupuesto(presupuesto: Double) {
+    fun actualizarPresupuesto(presupuesto: Double?) {
         _state.value = _state.value.copy(presupuesto = presupuesto)
     }
 
@@ -123,7 +130,7 @@ class PerfilCuestionarioViewModel(
     // -------------------------
     // CAMPOS TENGO_LUGAR
     // -------------------------
-    fun actualizarArriendo(arriendo: Double) {
+    fun actualizarArriendo(arriendo: Double?) {
         _state.value = _state.value.copy(arriendo = arriendo)
     }
 
@@ -221,29 +228,42 @@ class PerfilCuestionarioViewModel(
     // SUBIDA DE FOTOS
     // -------------------------
 
-    fun subirFotoPerfil(file: java.io.File, onSuccess: (String) -> Unit, onError: (String) -> Unit) {
+    fun subirFotoPerfilAlFinal(onSuccess: (String) -> Unit, onError: (String) -> Unit) {
         viewModelScope.launch {
             try {
                 _state.value = _state.value.copy(isLoading = true)
 
-                val requestFile = file.asRequestBody("image/*".toMediaTypeOrNull())
-                val body = MultipartBody.Part.createFormData(
-                    name = "file", // 👈 debe coincidir con @RestForm("file") del backend
-                    filename = file.name,
-                    body = requestFile
-                )
+                val localUri = _state.value.fotoPerfilLocalUri
+                if (localUri != null) {
+                    val file = File(Uri.parse(localUri).path ?: "")
+                    if (file.exists()) {
+                        // Crear body
+                        val requestFile = file.asRequestBody("image/*".toMediaTypeOrNull())
+                        val body = MultipartBody.Part.createFormData(
+                            name = "file",
+                            filename = file.name,
+                            body = requestFile
+                        )
 
-                val response = api.subirFotoPerfil(_state.value.userId, body)
+                        // Llamar API
+                        val response = api.subirFotoPerfil(_state.value.userId, body)
 
-                if (response.isSuccessful) {
-                    val url = response.body()?.url ?: ""
-                    _state.value = _state.value.copy(
-                        fotoPerfilUrl = url,
-                        isLoading = false
-                    )
-                    onSuccess(url)
+                        if (response.isSuccessful) {
+                            val url = response.body() ?: ""
+                            _state.value = _state.value.copy(
+                                fotoPerfilUrl = url,
+                                isLoading = false
+                            )
+                            onSuccess(url)
+                        } else {
+                            onError("Error al subir foto: ${response.message()}")
+                        }
+                    } else {
+                        onError("Archivo de imagen no encontrado")
+                    }
                 } else {
-                    onError("Error al subir foto: ${response.message()}")
+                    // Si no hay foto local, continuar igual
+                    onSuccess("")
                 }
             } catch (e: Exception) {
                 onError(e.localizedMessage ?: "Error inesperado")
@@ -252,6 +272,7 @@ class PerfilCuestionarioViewModel(
             }
         }
     }
+
 
     fun subirFotosResidencia(files: List<java.io.File>, onSuccess: (List<String>) -> Unit, onError: (String) -> Unit) {
         viewModelScope.launch {
@@ -270,7 +291,7 @@ class PerfilCuestionarioViewModel(
                 val response = api.subirFotosResidencia(_state.value.userId, parts)
 
                 if (response.isSuccessful) {
-                    val urls = response.body()?.urls ?: emptyList()
+                    val urls = response.body() ?: emptyList()
                     val nuevasFotos = _state.value.fotosResidencia + urls
                     _state.value = _state.value.copy(fotosResidencia = nuevasFotos)
                     onSuccess(urls)

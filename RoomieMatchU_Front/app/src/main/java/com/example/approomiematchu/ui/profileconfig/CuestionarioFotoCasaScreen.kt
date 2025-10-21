@@ -12,25 +12,42 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.navigation.NavController
 import com.example.approomiematchu.R
+import com.example.approomiematchu.navigation.AppScreens
+import com.example.approomiematchu.navigation.NavigationUtils
+import com.example.approomiematchu.ui.profileconfig.presentation.PerfilCuestionarioViewModel
 import com.example.approomiematchu.ui.theme.AppTypography
 import com.example.approomiematchu.ui.theme.RoomieMatchUTheme
+import com.example.approomiematchu.utils.rememberImagePicker
 
 @Composable
-fun CuestionarioFotoCasaScreen() {
+fun CuestionarioFotoCasaScreen(
+    navController: NavController,
+    viewModel: PerfilCuestionarioViewModel
+) {
+    val context = LocalContext.current
+    val imagePicker = rememberImagePicker { uri ->
+        uri?.let {
+            viewModel.agregarFotoResidenciaLocal(it.toString())
+            NavigationUtils.navigateToScreen(navController, AppScreens.SubirFotos.route)
+        }
+    }
+
     Box(
         modifier = Modifier
             .fillMaxSize()
             .background(MaterialTheme.colorScheme.background)
     ) {
-        // Imagen de fondo
+        // Fondo
         Image(
             painter = painterResource(id = R.drawable.fondo_profile),
-            contentDescription = "Fondo Profile",
+            contentDescription = null,
             modifier = Modifier.matchParentSize(),
             contentScale = ContentScale.Crop
         )
@@ -42,10 +59,8 @@ fun CuestionarioFotoCasaScreen() {
             verticalArrangement = Arrangement.SpaceBetween,
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            // ---- Menu de puntos, paso 6 ----
-            ProgressDots(current = 6)
+            ProgressDots(current = 7)
 
-            // ---- Contenedor centrado ----
             Column(
                 modifier = Modifier
                     .fillMaxHeight(0.8f)
@@ -53,10 +68,9 @@ fun CuestionarioFotoCasaScreen() {
                 verticalArrangement = Arrangement.Center,
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                // ---- Imagen icono central ----
                 Image(
                     painter = painterResource(id = R.drawable.ic_foto_casa_cuestionario),
-                    contentDescription = "Icono Foto Perfil",
+                    contentDescription = null,
                     modifier = Modifier
                         .size(250.dp)
                         .padding(bottom = 16.dp),
@@ -65,7 +79,6 @@ fun CuestionarioFotoCasaScreen() {
 
                 Spacer(modifier = Modifier.height(30.dp))
 
-                // ---- Título y descripción ----
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
                     Text(
                         text = "FOTOS DE LA RESIDENCIA",
@@ -82,11 +95,9 @@ fun CuestionarioFotoCasaScreen() {
                     )
                 }
             }
-            Spacer(modifier = Modifier.weight(1f))
 
-            // ---- Botón Agrega Foto ----
             Button(
-                onClick = {},
+                onClick = { imagePicker.launch() },
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(top = 24.dp),
@@ -106,6 +117,7 @@ fun CuestionarioFotoCasaScreen() {
     }
 }
 
+/*
 @Preview(showBackground = true, showSystemUi = true)
 @Composable
 fun CuestionarioFotoCasaScreenPreview() {
@@ -113,3 +125,4 @@ fun CuestionarioFotoCasaScreenPreview() {
         CuestionarioFotoCasaScreen()
     }
 }
+ */

@@ -34,6 +34,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import com.example.approomiematchu.navigation.AppScreens
 import com.example.approomiematchu.navigation.NavigationUtils
+import com.example.approomiematchu.ui.authentication.AuthViewModel
 import com.example.approomiematchu.ui.profileconfig.presentation.PerfilCuestionarioViewModel
 import com.example.approomiematchu.ui.theme.RoomieMatchUTheme
 import java.util.Calendar
@@ -41,13 +42,13 @@ import java.util.Calendar
 @Composable
 fun Cuestionario1Screen(
     navController: NavController,
-    viewModel: PerfilCuestionarioViewModel
+    viewModel: PerfilCuestionarioViewModel,
+    authViewModel: AuthViewModel
 ) {
     val state by viewModel.state.collectAsState()
     val colors = MaterialTheme.colorScheme
     val typography = MaterialTheme.typography
 
-    var nombre by remember { mutableStateOf("") }
     var dia by remember { mutableStateOf("") }
     var mes by remember { mutableStateOf("") }
     var anio by remember { mutableStateOf("") }
@@ -78,10 +79,13 @@ fun Cuestionario1Screen(
 
             Spacer(modifier = Modifier.height(24.dp))
 
-            // ---- Nombre ----
+            // ---- Nombre (solo lectura desde AuthViewModel) ----
             QuestionWithIcon(icon = Icons.Default.Person, text = "Nombre de usuario")
             WhiteTextField(
-                placeholder = "Escribe tu nombre",
+                placeholder = "Tu nombre",
+                value = authViewModel.fullName.value,
+                onValueChange = {},
+                enabled = false,
                 modifier = Modifier.fillMaxWidth()
             )
 
@@ -89,31 +93,45 @@ fun Cuestionario1Screen(
 
             // ---- Cumpleaños ----
             QuestionWithIcon(icon = Icons.Default.CalendarMonth, text = "Cumpleaños")
-            Row(horizontalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.fillMaxWidth()) {
-                listOf(
-                    Triple("DD", dia) { v: String -> dia = v.filter { it.isDigit() }.take(2) },
-                    Triple("MM", mes) { v: String -> mes = v.filter { it.isDigit() }.take(2) },
-                    Triple("AA", anio) { v: String -> anio = v.filter { it.isDigit() }.take(4) }
-                ).forEach { (ph, value, update) ->
-                    WhiteTextField(
-                        placeholder = ph,
-                        modifier = Modifier.weight(1f)
-                    )
-                }
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                WhiteTextField(
+                    placeholder = "DD",
+                    value = dia,
+                    onValueChange = { dia = it.filter { ch -> ch.isDigit() }.take(2) },
+                    modifier = Modifier.weight(1f)
+                )
+                WhiteTextField(
+                    placeholder = "MM",
+                    value = mes,
+                    onValueChange = { mes = it.filter { ch -> ch.isDigit() }.take(2) },
+                    modifier = Modifier.weight(1f)
+                )
+                WhiteTextField(
+                    placeholder = "AA",
+                    value = anio,
+                    onValueChange = { anio = it.filter { ch -> ch.isDigit() }.take(4) },
+                    modifier = Modifier.weight(1f)
+                )
             }
 
             Spacer(modifier = Modifier.height(16.dp))
 
             // ---- Género ----
             QuestionWithIcon(icon = Icons.Default.Wc, text = "Género")
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
-                listOf("Femenino", "Masculino", "Otro").forEach {
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                listOf("Femenino", "Masculino", "Otro").forEach { opcion ->
                     WhiteOutlinedButton(
-                        text = it,
+                        text = opcion,
                         modifier = Modifier.weight(1f),
                         onClick = {
-                            generoSeleccionado = it
-                            viewModel.actualizarGenero(it)
+                            generoSeleccionado = opcion
+                            viewModel.actualizarGenero(opcion)
                         }
                     )
                 }
@@ -121,23 +139,40 @@ fun Cuestionario1Screen(
 
             Spacer(modifier = Modifier.weight(1f))
 
-            // ---- Botón de siguiente ----
+            // ---- Botón siguiente ----
             Button(
                 onClick = {
                     val diaNum = dia.toIntOrNull()
                     val mesNum = mes.toIntOrNull()
                     val anioNum = anio.toIntOrNull()
 
-                    if (diaNum == null || mesNum == null || anioNum == null) {
-                        dialogMessage = "Por favor completa tu fecha de nacimiento."
-                        showDialog = true
-                    } else if (!esMayorDeEdad(diaNum, mesNum, anioNum)) {
-                        dialogMessage = "Debes ser mayor de 18 años para continuar."
-                        showDialog = true
-                    } else {
-                        // Guardar datos y avanzar
-                        viewModel.actualizarCampoFechaNacimiento("$anioNum-$mesNum-$diaNum")
-                        NavigationUtils.navigateToScreen(navController, AppScreens.Cuestionario2.route)
+                    when {
+                        diaNum == null || mesNum == null || anioNum == null -> {
+                            dialogMessage = "Por favor completa tu fecha de nacimiento."
+                            showDialog = true
+                        }
+
+                        !esMayorDeEdad(diaNum, mesNum, anioNum) -> {
+                            dialogMessage = "Debes ser mayor de 18 años para continuar."
+                            showDialog = true
+                        }
+
+                        generoSeleccionado == null -> {
+                            dialogMessage = "Selecciona tu género."
+                            showDialog = true
+                        }
+
+                        else -> {
+                            viewModel.actualizarCampoFechaNacimiento("$anioNum-$mesNum-$diaNum")
+                            viewModel.actualizarGenero(generoSeleccionado!!)
+                            viewModel.avanzarPaso()
+
+                            NavigationUtils.navigateToNextStep(
+                                navController = navController,
+                                tipoPerfil = state.tipoPerfil,
+                                pasoActual = 2
+                            )
+                        }
                     }
                 },
                 modifier = Modifier
@@ -149,7 +184,7 @@ fun Cuestionario1Screen(
             }
         }
 
-        // ---- Diálogo de validación ----
+        // ---- Diálogo ----
         if (showDialog) {
             AlertDialog(
                 onDismissRequest = { showDialog = false },
@@ -168,7 +203,7 @@ fun Cuestionario1Screen(
 fun esMayorDeEdad(dia: Int, mes: Int, anio: Int): Boolean {
     val hoy = Calendar.getInstance()
     val nacimiento = Calendar.getInstance()
-    nacimiento.set(anio, mes - 1, dia) // mes empieza en 0 en Calendar
+    nacimiento.set(anio, mes - 1, dia)
 
     var edad = hoy.get(Calendar.YEAR) - nacimiento.get(Calendar.YEAR)
     if (hoy.get(Calendar.DAY_OF_YEAR) < nacimiento.get(Calendar.DAY_OF_YEAR)) {
@@ -176,6 +211,7 @@ fun esMayorDeEdad(dia: Int, mes: Int, anio: Int): Boolean {
     }
     return edad >= 18
 }
+
 
 /*
 @Preview(showBackground = true)

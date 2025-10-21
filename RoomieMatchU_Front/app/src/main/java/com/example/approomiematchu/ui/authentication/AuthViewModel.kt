@@ -20,7 +20,10 @@ class AuthViewModel(
     var errorMessage = mutableStateOf<String?>(null)
     var isLoading = mutableStateOf(false)
 
-    fun login(onSuccess: () -> Unit) {
+    fun login(
+        onNavigateToHome: () -> Unit,
+        onNavigateToProfileSetup: () -> Unit
+    ) {
         viewModelScope.launch {
             isLoading.value = true
             val result = repository.login(
@@ -30,15 +33,28 @@ class AuthViewModel(
                 )
             )
 
-            result.onSuccess {
+            result.onSuccess { response ->
                 errorMessage.value = null
-                onSuccess()
+
+                val userId = response.userId
+
+                // Verificamos si ya tiene perfil
+                val tienePerfil = repository.verificarPerfil(userId)
+
+                if (tienePerfil) {
+                    onNavigateToHome()
+                } else {
+                    onNavigateToProfileSetup()
+                }
+
             }.onFailure {
                 errorMessage.value = it.message
             }
+
             isLoading.value = false
         }
     }
+
 
     fun register(onSuccess: () -> Unit) {
         val fullNameValue = fullName.value.trim()

@@ -56,7 +56,7 @@ import com.example.approomiematchu.navigation.AppScreens
 import com.example.approomiematchu.ui.theme.AppTypography
 
 @Composable
-fun AuthScreen(initialIsLogin: Boolean = true, navController: NavController) {
+fun AuthScreen(initialIsLogin: Boolean = true, navController: NavController, authViewModel: AuthViewModel) {
     var isLoginSelected by remember { mutableStateOf(initialIsLogin) }
 
     Box(modifier = Modifier.fillMaxSize()) {
@@ -85,9 +85,9 @@ fun AuthScreen(initialIsLogin: Boolean = true, navController: NavController) {
             )
             Spacer(Modifier.height(32.dp))
             if (isLoginSelected) {
-                LoginForm(navController)
+                LoginForm(navController, authViewModel)
             } else {
-                RegisterForm(navController)
+                RegisterForm(navController, authViewModel)
             }
         }
     }
@@ -203,7 +203,7 @@ fun AuthTextField(
 }
 
 @Composable
-fun LoginForm(navController: NavController, viewModel: AuthViewModel = viewModel()) {
+fun LoginForm(navController: NavController, viewModel: AuthViewModel) {
     val email by viewModel.email
     val password by viewModel.password
     val isLoading by viewModel.isLoading
@@ -266,9 +266,14 @@ fun LoginForm(navController: NavController, viewModel: AuthViewModel = viewModel
 
         Button(
             onClick = {
-                viewModel.login {
-                    navController.navigate(AppScreens.ProfileScreen.route)
-                }
+                viewModel.login(
+                    onNavigateToHome = {
+                        navController.navigate(AppScreens.HomeScreen.route)
+                    },
+                    onNavigateToProfileSetup = {
+                        navController.navigate(AppScreens.ProfileScreen.route)
+                    }
+                )
             },
             modifier = Modifier.fillMaxWidth(),
             shape = RoundedCornerShape(50.dp),
@@ -286,7 +291,7 @@ fun LoginForm(navController: NavController, viewModel: AuthViewModel = viewModel
 @Composable
 fun RegisterForm(
     navController: NavController,
-    viewModel: AuthViewModel = viewModel()
+    viewModel: AuthViewModel
 ) {
     val fullName by viewModel.fullName
     val username by viewModel.username

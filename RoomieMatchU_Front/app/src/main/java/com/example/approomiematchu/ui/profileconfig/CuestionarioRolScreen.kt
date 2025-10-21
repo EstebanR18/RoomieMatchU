@@ -25,7 +25,6 @@ import com.example.approomiematchu.navigation.NavigationUtils
 import com.example.approomiematchu.ui.profileconfig.presentation.PerfilCuestionarioViewModel
 import com.example.approomiematchu.ui.profileconfig.presentation.TipoPerfil
 import com.example.approomiematchu.ui.theme.RoomieMatchUTheme
-
 @Composable
 fun CuestionarioRolScreen(
     navController: NavController,

@@ -3,6 +3,7 @@ package com.example.approomiematchu.ui.profileconfig
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -10,20 +11,38 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.outlined.AddCircleOutline
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.text.style.TextAlign
+import androidx.navigation.NavController
+import coil3.compose.AsyncImage
+import com.example.approomiematchu.navigation.NavigationUtils
+import com.example.approomiematchu.ui.profileconfig.presentation.PerfilCuestionarioViewModel
 import com.example.approomiematchu.ui.theme.RoomieMatchUTheme
+import com.example.approomiematchu.utils.rememberImagePicker
 
 // ----------- Composable Principal -----------
-
 @Composable
 fun SubirFotosScreen(
-    photoCount: Int = 1 // Cantidad de fotos ya añadidas
+    navController: NavController,
+    viewModel: PerfilCuestionarioViewModel
 ) {
+    val state by viewModel.state.collectAsState()
+    val imagePicker = rememberImagePicker { uri ->
+        uri?.let {
+            if (state.fotosResidencia.size < 5) {
+                viewModel.agregarFotoResidenciaLocal(it.toString())
+            }
+        }
+    }
+
     CuestionarioBackground {
         val colors = MaterialTheme.colorScheme
         val typography = MaterialTheme.typography
@@ -34,17 +53,13 @@ fun SubirFotosScreen(
                 .padding(horizontal = 24.dp, vertical = 16.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            // Parte superior con contenido desplazable
             Column(
                 modifier = Modifier
                     .weight(1f)
                     .fillMaxWidth(),
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.Top
+                horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                // Paso 6
-                ProgressDots(current = 6)
-
+                ProgressDots(current = 7)
                 Spacer(modifier = Modifier.height(30.dp))
 
                 Text(
@@ -55,7 +70,7 @@ fun SubirFotosScreen(
                 )
 
                 Text(
-                    text = "Agrega varias fotos para mostrar tu perfil completo.",
+                    text = "Agrega varias fotos para mostrar tu residencia completa.",
                     style = typography.bodyLarge,
                     color = colors.onBackground.copy(alpha = 0.7f),
                     textAlign = TextAlign.Center,
@@ -64,22 +79,29 @@ fun SubirFotosScreen(
 
                 Spacer(modifier = Modifier.height(32.dp))
 
-                // ------- Contenedor de Fotos -------
-                PhotosGrid(photoCount = photoCount)
+                PhotosGrid(
+                    photos = state.fotosResidencia,
+                    onAddPhoto = {
+                        if (state.fotosResidencia.size < 5) imagePicker.launch()
+                    }
+                )
             }
 
-            // Botón siempre fijo abajo
             Button(
-                onClick = {},
+                onClick = {
+                    viewModel.avanzarPaso()
+                    NavigationUtils.navigateToNextStep(
+                        navController,
+                        state.tipoPerfil,
+                        state.pasoActual
+                    )
+                },
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(top = 16.dp),
                 shape = RoundedCornerShape(20.dp)
             ) {
-                Text(
-                    "SIGUIENTE",
-                    style = typography.headlineMedium
-                )
+                Text("SIGUIENTE", style = typography.headlineMedium)
             }
         }
     }
@@ -88,47 +110,49 @@ fun SubirFotosScreen(
 // ----------- Grid de Fotos -----------
 
 @Composable
-fun PhotosGrid(photoCount: Int) {
+fun PhotosGrid(
+    photos: List<String>,
+    onAddPhoto: () -> Unit
+) {
     val colors = MaterialTheme.colorScheme
-    val totalSlots = if (photoCount < 6) photoCount + 1 else 6 // máximo 6 con botón "+"
-    val rows = if (photoCount <= 1) 1 else totalSlots / 3 + if (totalSlots % 3 != 0) 1 else 0
 
-    Column(
-        verticalArrangement = Arrangement.spacedBy(9.dp),
-        horizontalAlignment = Alignment.CenterHorizontally
+    FlowRow(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
-        var index = 0
-        repeat(rows) {
-            // Si hay solo una foto → layout horizontal de 2 columnas grandes
-            if (photoCount <= 1) {
-                Row(
-                    horizontalArrangement = Arrangement.spacedBy(4.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    PhotoFrame(hasImage = true, large = true, borderColor = colors.primary)
-                    PhotoFrame(hasImage = false, large = true, borderColor = colors.primary)
-                }
-            } else {
-                // Layout normal en grid de 3 columnas
-                Row(
-                    horizontalArrangement = Arrangement.spacedBy(5.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    for (i in 0 until 3) {
-                        if (index < totalSlots) {
-                            if (index < photoCount) {
-                                PhotoFrame(hasImage = true, large = false, borderColor = colors.primary)
-                            } else {
-                                PhotoFrame(hasImage = false, large = false, borderColor = colors.primary)
-                            }
-                            index++
-                        }
-                    }
-                }
+        photos.take(5).forEach { uri ->
+            AsyncImage(
+                model = uri,
+                contentDescription = "Foto residencia",
+                modifier = Modifier
+                    .size(110.dp)
+                    .clip(RoundedCornerShape(12.dp))
+                    .border(2.dp, colors.primary, RoundedCornerShape(12.dp)),
+                contentScale = ContentScale.Crop
+            )
+        }
+
+        if (photos.size < 5) {
+            Box(
+                modifier = Modifier
+                    .size(110.dp)
+                    .clip(RoundedCornerShape(12.dp))
+                    .border(2.dp, colors.primary, RoundedCornerShape(12.dp))
+                    .clickable { onAddPhoto() },
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    imageVector = Icons.Outlined.AddCircleOutline,
+                    contentDescription = "Agregar foto",
+                    tint = colors.primary,
+                    modifier = Modifier.size(40.dp)
+                )
             }
         }
     }
 }
+
 
 // ----------- Marco de Foto Individual -----------
 
@@ -161,8 +185,9 @@ fun PhotoFrame(hasImage: Boolean, large: Boolean, borderColor: Color) {
     }
 }
 
-// ----------- Previews -----------
 
+// ----------- Previews -----------
+/*
 @Preview(showBackground = true)
 @Composable
 fun PreviewSubirFotos1() = RoomieMatchUTheme { SubirFotosScreen(photoCount = 1) }
@@ -178,3 +203,4 @@ fun PreviewSubirFotos3() = RoomieMatchUTheme { SubirFotosScreen(photoCount = 3) 
 @Preview(showBackground = true)
 @Composable
 fun PreviewSubirFotos4() = RoomieMatchUTheme { SubirFotosScreen(photoCount = 4) }
+ */

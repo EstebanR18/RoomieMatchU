@@ -36,4 +36,13 @@ class UserRepository(
             Result.failure(e)
         }
     }
+
+    suspend fun verificarPerfil(userId: Long): Boolean {
+        return try {
+            val response = api.obtenerPerfil(userId)
+            response.isSuccessful // true si existe (200), false si 404
+        } catch (e: Exception) {
+            false
+        }
+    }
 }

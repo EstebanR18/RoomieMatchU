@@ -58,11 +58,18 @@ fun ProgressDots(total: Int = 6, current: Int) {
 }
 
 @Composable
-fun WhiteTextField(placeholder: String, modifier: Modifier = Modifier) {
+fun WhiteTextField(
+    placeholder: String,
+    value: String,
+    onValueChange: (String) -> Unit,
+    modifier: Modifier = Modifier,
+    enabled: Boolean = true
+) {
     OutlinedTextField(
-        value = "",
-        onValueChange = {},
+        value = value,
+        onValueChange = onValueChange,
         placeholder = { Text(placeholder) },
+        enabled = enabled,
         modifier = modifier
             .fillMaxWidth()
             .padding(top = 8.dp),
@@ -70,32 +77,51 @@ fun WhiteTextField(placeholder: String, modifier: Modifier = Modifier) {
         colors = OutlinedTextFieldDefaults.colors(
             focusedContainerColor = Color.White,
             unfocusedContainerColor = Color.White,
+            disabledContainerColor = Color.White.copy(alpha = 0.6f),
             focusedBorderColor = MaterialTheme.colorScheme.primary,
             unfocusedBorderColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.4f),
-            cursorColor = MaterialTheme.colorScheme.primary
+            disabledBorderColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.2f),
+            cursorColor = MaterialTheme.colorScheme.primary,
+            disabledTextColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
         )
     )
 }
+
 
 @Composable
 fun WhiteOutlinedButton(
     text: String,
     modifier: Modifier = Modifier,
+    isSelected: Boolean = false,
     onClick: () -> Unit
 ) {
+    val colors = MaterialTheme.colorScheme
+
     OutlinedButton(
         onClick = onClick,
         modifier = modifier,
         shape = RoundedCornerShape(20.dp),
         colors = ButtonDefaults.outlinedButtonColors(
-            containerColor = Color.White,
-            contentColor = MaterialTheme.colorScheme.primary
-        )
+            containerColor = if (isSelected) colors.primary.copy(alpha = 0.1f) else Color.White,
+            contentColor = if (isSelected) colors.primary else colors.primary
+        ),
+        border = if (isSelected) {
+            ButtonDefaults.outlinedButtonBorder.copy(
+                brush = androidx.compose.ui.graphics.Brush.verticalGradient(
+                    colors = listOf(colors.primary, colors.primary)
+                )
+            )
+        } else {
+            ButtonDefaults.outlinedButtonBorder
+        }
     ) {
-        Text(text, textAlign = TextAlign.Center)
+        Text(
+            text,
+            textAlign = TextAlign.Center,
+            color = if (isSelected) colors.primary else colors.primary
+        )
     }
 }
-
 
 @Composable
 fun QuestionWithIcon(icon: ImageVector, text: String) {
@@ -110,10 +136,24 @@ fun QuestionWithIcon(icon: ImageVector, text: String) {
 }
 
 @Composable
-fun YesNoButtons(onYes: () -> Unit = {}, onNo: () -> Unit = {}) {
-    Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
-        WhiteOutlinedButton(text = "Sí", modifier = Modifier.weight(1f))
-        WhiteOutlinedButton(text = "No", modifier = Modifier.weight(1f))
+fun YesNoButtons(
+    onYes: () -> Unit = {},
+    onNo: () -> Unit = {}
+) {
+    Row(
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        WhiteOutlinedButton(
+            text = "Sí",
+            modifier = Modifier.weight(1f),
+            onClick = onYes
+        )
+        WhiteOutlinedButton(
+            text = "No",
+            modifier = Modifier.weight(1f),
+            onClick = onNo
+        )
     }
     Spacer(modifier = Modifier.height(12.dp))
 }

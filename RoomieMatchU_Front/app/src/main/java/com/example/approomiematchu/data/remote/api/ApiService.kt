@@ -39,12 +39,17 @@ interface ApiService {
     suspend fun subirFotoPerfil(
         @Path("userId") userId: Long,
         @Part file: MultipartBody.Part
-    ): Response<UploadResponse>
-
+    ): Response<String>
     @Multipart
     @POST("/api/perfil/{userId}/fotos-residencia")
     suspend fun subirFotosResidencia(
         @Path("userId") userId: Long,
         @Part files: List<MultipartBody.Part>
-    ): Response<UploadResponse>
+    ): Response<List<String>>
+
+    @GET("/api/perfil/{userId}")
+    suspend fun obtenerPerfil(
+        @Path("userId") userId: Long
+    ): Response<PerfilResponse>
+
 }
