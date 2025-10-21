@@ -202,15 +202,48 @@ public class PerfilController {
             @PathParam("userId") Long userId,
             @RestForm("file") FileUpload file
     ) {
+        System.out.println("📩 [BACK] Iniciando subida de foto de perfil...");
+        System.out.println("📩 [BACK] User ID: " + userId);
+
         try {
+            // --- 1️⃣ Validar archivo recibido ---
+            if (file == null) {
+                System.out.println("⚠️ [BACK] El archivo es nulo");
+                throw new IllegalArgumentException("Archivo no recibido (nulo)");
+            }
+
+            System.out.println("📂 [BACK] Nombre del archivo: " + file.fileName());
+            System.out.println("📂 [BACK] Tipo MIME: " + file.contentType());
+            System.out.println("📂 [BACK] Tamaño: " + file.size());
+
+            // --- 2️⃣ Obtener el archivo físico ---
+            java.nio.file.Path tempPath = file.uploadedFile();
+            if (tempPath == null || !tempPath.toFile().exists()) {
+                System.out.println("⚠️ [BACK] No se encontró archivo físico en el sistema temporal");
+                throw new IllegalArgumentException("Archivo no encontrado en el servidor");
+            }
+
+            System.out.println("✅ [BACK] Archivo recibido correctamente en: " + tempPath.toAbsolutePath());
+
+            // --- 3️⃣ Llamar al servicio que sube a S3 ---
+            System.out.println("☁️ [BACK] Llamando a perfilService.subirFotoPerfil...");
             String url = perfilService.subirFotoPerfil(userId, file);
-            return Response.ok(url).build();
+            System.out.println("✅ [BACK] URL devuelta por el servicio: " + url);
+
+            // --- 4️⃣ Responder al cliente ---
+            System.out.println("🚀 [BACK] Envío exitoso al cliente");
+            return Response.ok(new MensajeResponseDTO(url)).build();
+
         } catch (Exception e) {
+            System.out.println("❌ [BACK] Error durante la subida de foto:");
+            e.printStackTrace(); // 🔍 imprime stack completo en la consola del servidor
+
             return Response.status(Response.Status.BAD_REQUEST)
-                    .entity(new MensajeResponseDTO(e.getMessage()))
+                    .entity(new MensajeResponseDTO("Error: " + (e.getMessage() != null ? e.getMessage() : "sin mensaje")))
                     .build();
         }
     }
+
 
     // ---------------------- MULTIPART: FOTOS RESIDENCIA ----------------------
     @POST
