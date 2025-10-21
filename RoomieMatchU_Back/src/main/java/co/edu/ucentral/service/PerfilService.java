@@ -187,26 +187,82 @@ public class PerfilService {
     // ------------------ SUBIR FOTO DE PERFIL (S3) ------------------
     @Transactional
     public String subirFotoPerfil(Long userId, FileUpload fileUpload) {
-        UserEntity user = userRepository.findById(userId);
-        if (user == null) throw new RuntimeException("Usuario no encontrado");
+        System.out.println("📤 [BACK-SERVICE] Iniciando subida de foto de perfil...");
+        System.out.println("📤 [BACK-SERVICE] User ID recibido: " + userId);
 
-        String key = "perfiles/" + userId + "/" + fileUpload.fileName();
-        String url = s3Uploader.uploadFile(fileUpload.uploadedFile(), key);
+        try {
+            // 1️⃣ Verificar usuario
+            UserEntity user = userRepository.findById(userId);
+            if (user == null) {
+                System.out.println("❌ [BACK-SERVICE] Usuario no encontrado en base de datos.");
+                throw new RuntimeException("Usuario no encontrado");
+            }
+            System.out.println("✅ [BACK-SERVICE] Usuario encontrado: " + user.getUsuario());
+            System.out.println("📇 [BACK-SERVICE] Tipo de perfil: " + user.getPerfilTipo());
 
-        if (user.getPerfilTipo() == UserEntity.PerfilTipo.BUSCO_LUGAR) {
-            PerfilBuscoLugarEntity perfil = perfilBuscoRepo.findByUserId(userId);
-            if (perfil == null) throw new RuntimeException("Perfil 'Busco' no encontrado");
-            perfil.setFotoPerfil(url);
-        } else if (user.getPerfilTipo() == UserEntity.PerfilTipo.TENGO_LUGAR) {
-            PerfilTengoLugarEntity perfil = perfilTengoRepo.findByUserId(userId);
-            if (perfil == null) throw new RuntimeException("Perfil 'Tengo' no encontrado");
-            perfil.setFotoPerfil(url);
-        } else {
-            throw new RuntimeException("Usuario no tiene tipo de perfil asignado");
+            // 2️⃣ Validar archivo recibido
+            if (fileUpload == null) {
+                System.out.println("⚠️ [BACK-SERVICE] fileUpload es nulo.");
+                throw new RuntimeException("Archivo no recibido (nulo)");
+            }
+
+            if (fileUpload.uploadedFile() == null) {
+                System.out.println("⚠️ [BACK-SERVICE] uploadedFile() es nulo.");
+                throw new RuntimeException("No se encontró el archivo físico");
+            }
+
+            java.nio.file.Path uploadedPath = fileUpload.uploadedFile();
+            System.out.println("📂 [BACK-SERVICE] Archivo recibido en ruta temporal: " + uploadedPath.toAbsolutePath());
+            System.out.println("📂 [BACK-SERVICE] Nombre original: " + fileUpload.fileName());
+            System.out.println("📂 [BACK-SERVICE] Tipo MIME: " + fileUpload.contentType());
+            System.out.println("📂 [BACK-SERVICE] Tamaño: " + fileUpload.size() + " bytes");
+
+            // 3️⃣ Preparar clave para S3
+            String key = "perfiles/" + userId + "/" + fileUpload.fileName();
+            System.out.println("🪣 [BACK-SERVICE] Clave de destino en S3: " + key);
+
+            // 4️⃣ Subir archivo a S3
+            System.out.println("☁️ [BACK-SERVICE] Iniciando subida a S3...");
+            String url = s3Uploader.uploadFile(uploadedPath, key);
+            System.out.println("✅ [BACK-SERVICE] Archivo subido correctamente a S3.");
+            System.out.println("🌐 [BACK-SERVICE] URL generada: " + url);
+
+            // 5️⃣ Guardar URL según el tipo de perfil
+            if (user.getPerfilTipo() == UserEntity.PerfilTipo.BUSCO_LUGAR) {
+                System.out.println("🧩 [BACK-SERVICE] Actualizando perfil BUSCO_LUGAR...");
+                PerfilBuscoLugarEntity perfil = perfilBuscoRepo.findByUserId(userId);
+                if (perfil == null) {
+                    System.out.println("❌ [BACK-SERVICE] Perfil 'Busco Lugar' no encontrado para el usuario.");
+                    throw new RuntimeException("Perfil 'Busco' no encontrado");
+                }
+                perfil.setFotoPerfil(url);
+                System.out.println("✅ [BACK-SERVICE] Perfil 'Busco Lugar' actualizado con la URL.");
+
+            } else if (user.getPerfilTipo() == UserEntity.PerfilTipo.TENGO_LUGAR) {
+                System.out.println("🧩 [BACK-SERVICE] Actualizando perfil TENGO_LUGAR...");
+                PerfilTengoLugarEntity perfil = perfilTengoRepo.findByUserId(userId);
+                if (perfil == null) {
+                    System.out.println("❌ [BACK-SERVICE] Perfil 'Tengo Lugar' no encontrado para el usuario.");
+                    throw new RuntimeException("Perfil 'Tengo' no encontrado");
+                }
+                perfil.setFotoPerfil(url);
+                System.out.println("✅ [BACK-SERVICE] Perfil 'Tengo Lugar' actualizado con la URL.");
+
+            } else {
+                System.out.println("⚠️ [BACK-SERVICE] Usuario sin tipo de perfil asignado.");
+                throw new RuntimeException("Usuario no tiene tipo de perfil asignado");
+            }
+
+            System.out.println("🎉 [BACK-SERVICE] Subida de foto de perfil completada exitosamente.");
+            return url;
+
+        } catch (Exception e) {
+            System.out.println("❌ [BACK-SERVICE] Error durante la subida de foto:");
+            e.printStackTrace();
+            throw e;
         }
-
-        return url;
     }
+
 
     // ------------------ SUBIR FOTOS DE RESIDENCIA (S3) ------------------
     @Transactional
