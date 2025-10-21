@@ -5,7 +5,7 @@ import com.example.approomiematchu.data.remote.api.ApiService
 import retrofit2.converter.gson.GsonConverterFactory
 
 object RetrofitClient {
-    private const val BASE_URL = "http://192.168.1.9:8086"
+    private const val BASE_URL = "http://192.168.2.14:8086"
 
     val instance: ApiService by lazy {
         Retrofit.Builder()
