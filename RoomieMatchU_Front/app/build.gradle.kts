@@ -27,16 +27,38 @@ android {
             )
         }
     }
+
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_11
         targetCompatibility = JavaVersion.VERSION_11
     }
+
     kotlinOptions {
         jvmTarget = "11"
     }
+
     buildFeatures {
         compose = true
     }
+
+    packaging {
+        resources {
+            excludes.add("META-INF/INDEX.LIST")
+            excludes.add("META-INF/DEPENDENCIES")
+            excludes.add("META-INF/DEPENDENCIES.txt")
+            excludes.add("META-INF/LICENSE")
+            excludes.add("META-INF/LICENSE.txt")
+            excludes.add("META-INF/license.txt")
+            excludes.add("META-INF/NOTICE")
+            excludes.add("META-INF/NOTICE.txt")
+            excludes.add("META-INF/ASL2.0")
+            excludes.add("META-INF/*.SF")
+            excludes.add("META-INF/*.DSA")
+            excludes.add("META-INF/*.RSA")
+            excludes.add("META-INF/io.netty.versions.properties")
+        }
+    }
+
 }
 
 dependencies {
@@ -67,7 +89,10 @@ dependencies {
     // Converter library for JSON serialization/deserialization (e.g., Gson)
     implementation("com.squareup.retrofit2:converter-gson:3.0.0")
 
-    // OkHttp (often used by Retrofit for network requests)
+    // OkHttp
     implementation("com.squareup.okhttp3:okhttp:5.1.0")
-    implementation("com.squareup.okhttp3:logging-interceptor:5.1.0") // Optional: for logging network requests
+    implementation("com.squareup.okhttp3:logging-interceptor:5.1.0")
+
+    implementation("io.coil-kt.coil3:coil-compose:3.3.0")
+    implementation("io.coil-kt.coil3:coil-network-okhttp:3.3.0")
 }

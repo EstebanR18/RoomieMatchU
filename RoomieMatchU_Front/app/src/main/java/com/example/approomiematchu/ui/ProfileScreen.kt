@@ -80,7 +80,7 @@ fun ProfileScreen(navController: NavController){
 
                 // Botón Iniciar Sesión
                 Button(
-                    onClick = { navController.navigate(AppScreens.AuthScreen.createRoute(true))},
+                    onClick = { navController.navigate(AppScreens.CuestionarioRol.route)},
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(top = 24.dp),

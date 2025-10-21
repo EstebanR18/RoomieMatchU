@@ -13,6 +13,11 @@ interface ApiService {
     @POST("/api/users/register")
     suspend fun register(@Body request: RegisterRequest): Response<RegisterResponse>
 
+    @GET("/api/users/{id}")
+    suspend fun getUserById(
+        @Path("id") userId: Long
+    ): Response<UserResponse>
+
     @POST("/api/password/request")
     suspend fun requestPasswordReset(@Body request: ResetEmailRequest): Response<ApiMessageResponse>
 
@@ -38,13 +43,18 @@ interface ApiService {
     @POST("/api/perfil/{userId}/foto-perfil")
     suspend fun subirFotoPerfil(
         @Path("userId") userId: Long,
-        @Part foto: MultipartBody.Part
-    ): Response<UploadResponse>
-
+        @Part file: MultipartBody.Part
+    ): Response<String>
     @Multipart
     @POST("/api/perfil/{userId}/fotos-residencia")
     suspend fun subirFotosResidencia(
         @Path("userId") userId: Long,
         @Part files: List<MultipartBody.Part>
-    ): Response<UploadResponse>
+    ): Response<List<String>>
+
+    @GET("/api/perfil/{userId}")
+    suspend fun obtenerPerfil(
+        @Path("userId") userId: Long
+    ): Response<PerfilResponse>
+
 }

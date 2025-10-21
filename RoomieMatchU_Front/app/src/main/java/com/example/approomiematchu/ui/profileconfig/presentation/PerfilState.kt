@@ -3,6 +3,7 @@ package com.example.approomiematchu.ui.profileconfig.presentation
 data class PerfilState(
     val userId: Long = 0L,
     val tipoPerfil: TipoPerfil = TipoPerfil.NONE,
+    val fotoPerfilLocalUri: String? = null, // URI local temporal
     val fotoPerfilUrl: String? = null,
     val fechaNacimiento: String = "",
     val genero: String? = null,

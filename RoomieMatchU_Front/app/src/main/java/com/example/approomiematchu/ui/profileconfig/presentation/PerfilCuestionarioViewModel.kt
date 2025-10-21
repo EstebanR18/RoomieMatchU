@@ -1,13 +1,21 @@
 package com.example.approomiematchu.ui.profileconfig.presentation
 
+import android.content.Context
+import android.net.Uri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.approomiematchu.data.remote.api.ApiService
 import com.example.approomiematchu.data.remote.dto.PerfilBuscoLugarRequest
 import com.example.approomiematchu.data.remote.dto.PerfilTengoLugarRequest
+import com.example.approomiematchu.utils.uriToFile
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
+import okhttp3.MediaType.Companion.toMediaTypeOrNull
+import okhttp3.MultipartBody
+import okhttp3.RequestBody.Companion.asRequestBody
+import java.io.File
+
 
 class PerfilCuestionarioViewModel(
     private val api: ApiService
@@ -33,6 +41,10 @@ class PerfilCuestionarioViewModel(
 
     fun actualizarFotoPerfil(url: String) {
         _state.value = _state.value.copy(fotoPerfilUrl = url)
+    }
+
+    fun actualizarFotoPerfilLocal(uri: String) {
+        _state.value = _state.value.copy(fotoPerfilLocalUri = uri)
     }
 
     fun avanzarPaso() {
@@ -85,10 +97,11 @@ class PerfilCuestionarioViewModel(
         _state.value = _state.value.copy(descripcionLibre = descripcion)
     }
 
+
     // -------------------------
     // CAMPOS BUSCO_LUGAR
     // -------------------------
-    fun actualizarPresupuesto(presupuesto: Double) {
+    fun actualizarPresupuesto(presupuesto: Double?) {
         _state.value = _state.value.copy(presupuesto = presupuesto)
     }
 
@@ -119,7 +132,7 @@ class PerfilCuestionarioViewModel(
     // -------------------------
     // CAMPOS TENGO_LUGAR
     // -------------------------
-    fun actualizarArriendo(arriendo: Double) {
+    fun actualizarArriendo(arriendo: Double?) {
         _state.value = _state.value.copy(arriendo = arriendo)
     }
 
@@ -137,15 +150,6 @@ class PerfilCuestionarioViewModel(
 
     fun actualizarServiciosIncluidos(servicios: String) {
         _state.value = _state.value.copy(serviciosIncluidos = servicios)
-    }
-
-    // -------------------------
-    // FOTOS DE RESIDENCIA
-    // -------------------------
-    fun agregarFotoResidencia(url: String) {
-        val lista = _state.value.fotosResidencia.toMutableList()
-        lista.add(url)
-        _state.value = _state.value.copy(fotosResidencia = lista)
     }
 
     //------------------------------
@@ -179,7 +183,8 @@ class PerfilCuestionarioViewModel(
                 if (resp.isSuccessful) {
                     onSuccess()
                 } else {
-                    onError(resp.message())
+                    val bodyError = resp.errorBody()?.string()
+                    onError("Código: ${resp.code()} - ${resp.message()}\n${bodyError ?: "Sin detalles"}")
                 }
             } catch (e: Exception) {
                 onError(e.localizedMessage ?: "Error")
@@ -221,4 +226,102 @@ class PerfilCuestionarioViewModel(
             }
         }
     }
+
+    // -------------------------
+    // SUBIDA DE FOTOS
+    // -------------------------
+
+    fun subirFotoPerfilAlFinal(
+        context: Context,
+        onSuccess: (String) -> Unit,
+        onError: (String) -> Unit
+    ) {
+        viewModelScope.launch {
+            try {
+                _state.value = _state.value.copy(isLoading = true)
+
+                val localUri = _state.value.fotoPerfilLocalUri
+                if (localUri != null) {
+                    // Convertimos correctamente el content:// a un File físico
+                    val file = uriToFile(context, localUri)
+                    if (file != null && file.exists()) {
+                        // Detectar tipo MIME real
+                        val mimeType = context.contentResolver.getType(Uri.parse(localUri)) ?: "image/jpeg"
+
+                        // Crear body con nombre y tipo correctos
+                        val requestFile = file.asRequestBody(mimeType.toMediaTypeOrNull())
+                        val body = MultipartBody.Part.createFormData(
+                            name = "file",               // Debe coincidir con @RestForm("file")
+                            filename = file.name,        // Requerido por Quarkus
+                            body = requestFile
+                        )
+
+                        // Llamar API
+                        val response = api.subirFotoPerfil(_state.value.userId, body)
+
+                        if (response.isSuccessful) {
+                            val url = response.body() ?: ""
+                            _state.value = _state.value.copy(
+                                fotoPerfilUrl = url,
+                                isLoading = false
+                            )
+                            onSuccess(url)
+                        } else {
+                            onError("Error al subir foto: ${response.errorBody()?.string() ?: response.message()}")
+                        }
+                    } else {
+                        onError("Archivo de imagen no encontrado")
+                    }
+                } else {
+                    onSuccess("") // No hay foto, continuar
+                }
+            } catch (e: Exception) {
+                onError(e.localizedMessage ?: "Error inesperado")
+            } finally {
+                _state.value = _state.value.copy(isLoading = false)
+            }
+        }
+    }
+
+    fun subirFotosResidencia(files: List<java.io.File>, onSuccess: (List<String>) -> Unit, onError: (String) -> Unit) {
+        viewModelScope.launch {
+            try {
+                _state.value = _state.value.copy(isLoading = true)
+
+                val parts = files.map { file ->
+                    val body = file.asRequestBody("image/*".toMediaTypeOrNull())
+                    MultipartBody.Part.createFormData(
+                        name = "files", // 👈 debe coincidir con @RestForm("files")
+                        filename = file.name,
+                        body = body
+                    )
+                }
+
+                val response = api.subirFotosResidencia(_state.value.userId, parts)
+
+                if (response.isSuccessful) {
+                    val urls = response.body() ?: emptyList()
+                    val nuevasFotos = _state.value.fotosResidencia + urls
+                    _state.value = _state.value.copy(fotosResidencia = nuevasFotos)
+                    onSuccess(urls)
+                } else {
+                    onError("Error al subir fotos: ${response.message()}")
+                }
+            } catch (e: Exception) {
+                onError(e.localizedMessage ?: "Error inesperado")
+            } finally {
+                _state.value = _state.value.copy(isLoading = false)
+            }
+        }
+    }
+
+    fun agregarFotoResidenciaLocal(uri: String) {
+        val lista = _state.value.fotosResidencia.toMutableList()
+        if (!lista.contains(uri)) { // evita duplicados
+            lista.add(uri)
+            _state.value = _state.value.copy(fotosResidencia = lista)
+        }
+    }
+
+
 }

@@ -18,6 +18,7 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -27,16 +28,31 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.navigation.NavController
+import com.example.approomiematchu.navigation.NavigationUtils
+import com.example.approomiematchu.ui.profileconfig.presentation.PerfilCuestionarioViewModel
 import com.example.approomiematchu.ui.theme.RoomieMatchUTheme
 
 @Composable
-fun Cuestionario2Screen() {
-    CuestionarioBackground {
-        val colors = MaterialTheme.colorScheme
-        val typography = MaterialTheme.typography
-        var alergia by remember { mutableStateOf(false) }
-        var mascotas by remember { mutableStateOf(false) }
+fun Cuestionario2Screen(
+    navController: NavController,
+    viewModel: PerfilCuestionarioViewModel
+) {
+    val state by viewModel.state.collectAsState()
+    val colors = MaterialTheme.colorScheme
+    val typography = MaterialTheme.typography
 
+    var fuma by remember { mutableStateOf<Boolean?>(state.fuma) }
+    var alergico by remember { mutableStateOf<Boolean?>(state.alergico) }
+    var detalleAlergia by remember { mutableStateOf(state.detalleAlergia ?: "") }
+    var mascota by remember { mutableStateOf<Boolean?>(state.mascota) }
+    var dispuestoMascotas by remember { mutableStateOf<Boolean?>(null) }
+
+    val formularioCompleto =
+        fuma != null && alergico != null && mascota != null && dispuestoMascotas != null &&
+                (!alergico!! || detalleAlergia.isNotBlank())
+
+    CuestionarioBackground {
         Column(
             modifier = Modifier
                 .fillMaxSize()
@@ -44,7 +60,7 @@ fun Cuestionario2Screen() {
                 .padding(24.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            ProgressDots(current = 2)
+            ProgressDots(total = 8, current = 3)
 
             Spacer(modifier = Modifier.height(30.dp))
             Text("TU ESTILO DE VIDA", style = typography.displayLarge, color = colors.onBackground)
@@ -60,30 +76,62 @@ fun Cuestionario2Screen() {
 
             // ---- ¿Fumas? ----
             QuestionWithIcon(icon = Icons.Default.SmokingRooms, text = "¿Fumas?")
-            YesNoButtons()
+            YesNoButtons(
+                selectedOption = fuma,
+                onYes = { fuma = true; viewModel.actualizarFuma(true) },
+                onNo = { fuma = false; viewModel.actualizarFuma(false) }
+            )
 
             // ---- ¿Eres alérgico? ----
             QuestionWithIcon(icon = Icons.Default.Healing, text = "¿Eres alérgico a algo?")
-            YesNoButtons(onYes = { alergia = true }, onNo = { alergia = false })
-            if (alergia) {
-                WhiteTextField(placeholder = "¿A qué?")
+            YesNoButtons(
+                selectedOption = alergico,
+                onYes = { alergico = true; viewModel.actualizarAlergico(true, detalleAlergia) },
+                onNo = { alergico = false; detalleAlergia = ""; viewModel.actualizarAlergico(false, null) }
+            )
+
+            if (alergico == true) {
+                WhiteTextField(
+                    placeholder = "¿A qué?",
+                    value = detalleAlergia,
+                    onValueChange = {
+                        detalleAlergia = it
+                        viewModel.actualizarAlergico(true, it)
+                    }
+                )
             }
 
             // ---- ¿Tienes mascotas? ----
             QuestionWithIcon(icon = Icons.Default.Pets, text = "¿Tienes mascotas?")
-            YesNoButtons(onYes = { mascotas = true }, onNo = { mascotas = false })
-            if (mascotas) {
-                WhiteTextField(placeholder = "¿Cuáles?")
-            }
+            YesNoButtons(
+                selectedOption = mascota,
+                onYes = { mascota = true; viewModel.actualizarMascota(true) },
+                onNo = { mascota = false; viewModel.actualizarMascota(false) }
+            )
 
             // ---- ¿Dispuesto a vivir con mascotas? ----
             QuestionWithIcon(icon = Icons.Default.Home, text = "¿Estás dispuesto a vivir con mascotas?")
-            YesNoButtons()
+            YesNoButtons(
+                selectedOption = dispuestoMascotas,
+                onYes = { dispuestoMascotas = true },
+                onNo = { dispuestoMascotas = false }
+            )
 
             Spacer(modifier = Modifier.weight(1f))
 
+            // ---- Botón siguiente ----
             Button(
-                onClick = {},
+                onClick = {
+                    if (formularioCompleto) {
+                        viewModel.avanzarPaso()
+                        NavigationUtils.navigateToNextStep(
+                            navController = navController,
+                            tipoPerfil = state.tipoPerfil,
+                            pasoActual = 3
+                        )
+                    }
+                },
+                enabled = formularioCompleto,
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(top = 24.dp),
@@ -91,13 +139,15 @@ fun Cuestionario2Screen() {
             ) {
                 Text(
                     "SIGUIENTE",
-                    style = MaterialTheme.typography.headlineMedium
+                    style = typography.headlineMedium
                 )
             }
         }
     }
 }
 
+/*
 @Preview(showBackground = true)
 @Composable
 fun PreviewCuestionario2() = RoomieMatchUTheme { Cuestionario2Screen() }
+ */
