@@ -1,14 +1,16 @@
 package co.edu.ucentral.dto;
 
+import lombok.Data;
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.util.List;
 
+@Data
 public class PerfilResponseDTO {
     public Long id;
-    public String tipo; // BUSCO_LUGAR o TENGO_LUGAR
-
+    public String tipo;
     public String fotoPerfil;
-    public LocalDate fechaNacimiento; // <-- usa este tipo si tu entidad lo maneja así
+    public LocalDate fechaNacimiento;
     public String barrio;
     public String habitos;
     public String genero;
@@ -20,10 +22,16 @@ public class PerfilResponseDTO {
     public String descripcionLibre;
     public Boolean mascota;
 
-    // Solo para "Busco un lugar"
+    // BUSCO
     public BigDecimal presupuesto;
+    public String tipoHabitacion;
+    public String tiempoEstancia;
+    public Integer personasConvivencia;
+    public LocalDate fechaMudanza;
+    public String serviciosDeseados;
+    public List<String> fotosResidenciaUrls;
 
-    // Solo para "Tengo un lugar"
+    // TENGO
     public BigDecimal arriendo;
     public Integer cantidadHabitaciones;
     public Integer maxRoomies;

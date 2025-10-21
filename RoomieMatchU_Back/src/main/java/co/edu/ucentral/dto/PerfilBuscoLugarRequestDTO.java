@@ -7,12 +7,19 @@ import java.time.LocalDate;
 @Data
 public class PerfilBuscoLugarRequestDTO {
 
-    // Obligatorios
+    // Obligatorios (fotoPerfil seguirá siendo URL si ya subiste la imagen)
     private String fotoPerfil;
     private LocalDate fechaNacimiento;
     private BigDecimal presupuesto;
     private String barrio;
     private String habitos;
+
+    // NUEVOS
+    private String tipoHabitacion;
+    private String tiempoEstancia;
+    private Integer personasConvivencia;
+    private LocalDate fechaMudanza;
+    private String serviciosDeseados; // csv o json
 
     // Opcionales
     private String genero;

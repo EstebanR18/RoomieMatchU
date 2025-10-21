@@ -5,6 +5,7 @@ import lombok.*;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.util.List;
 
 @Entity
 @Table(name = "perfil_tengo_lugar")
@@ -21,7 +22,7 @@ public class PerfilTengoLugarEntity {
 
     // Obligatorios
     @Column(nullable = false)
-    private String fotoPerfil;
+    private String fotoPerfil; // URL
 
     @Column(nullable = false)
     private LocalDate fechaNacimiento;
@@ -38,7 +39,7 @@ public class PerfilTengoLugarEntity {
     @Column(nullable = false)
     private String barrio;
 
-    @Column(nullable = false)
+    @Column(nullable = false, length = 2000)
     private String habitos;
 
     // Opcionales
@@ -48,8 +49,13 @@ public class PerfilTengoLugarEntity {
     private String detalleAlergia;
     private String idioma;
     private String telefono;
+    @Column(length = 2000)
     private String descripcionLibre;
     private String reglasConvivencia;
     private String serviciosIncluidos;
     private Boolean mascota;
+
+    // Fotos (relación OneToMany)
+    @OneToMany(mappedBy = "perfilTengo", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
+    private List<FotoResidenciaEntity> fotosResidencia;
 }
