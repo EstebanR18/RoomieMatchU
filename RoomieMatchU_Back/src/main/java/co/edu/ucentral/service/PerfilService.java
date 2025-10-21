@@ -57,8 +57,8 @@ public class PerfilService {
         entity.setTipoHabitacion(data.getTipoHabitacion());
         entity.setTiempoEstancia(data.getTiempoEstancia());
         entity.setPersonasConvivencia(data.getPersonasConvivencia());
-        entity.setFechaMudanza(data.getFechaMudanza());
         entity.setServiciosDeseados(data.getServiciosDeseados());
+        entity.setFechaMudanza(data.getFechaMudanza());
 
         // Opcionales
         entity.setGenero(data.getGenero());

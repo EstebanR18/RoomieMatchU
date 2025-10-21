@@ -33,7 +33,7 @@ public class PerfilController {
     @Inject
     UserRepository userRepository;
 
-    // Crear perfil "Busco un lugar"
+    // ---------------------- CREAR PERFIL BUSCO ----------------------
     @POST
     @Path("/busco-lugar/{userId}")
     public Response crearPerfilBusco(@PathParam("userId") Long userId, PerfilBuscoLugarRequestDTO data) {
@@ -47,7 +47,7 @@ public class PerfilController {
         }
     }
 
-    // Crear perfil "Tengo un lugar"
+    // ---------------------- CREAR PERFIL TENGO ----------------------
     @POST
     @Path("/tengo-lugar/{userId}")
     public Response crearPerfilTengo(@PathParam("userId") Long userId, PerfilTengoLugarRequestDTO data) {
@@ -61,7 +61,7 @@ public class PerfilController {
         }
     }
 
-    // Editar perfil "Busco un lugar"
+    // ---------------------- EDITAR PERFIL BUSCO ----------------------
     @PUT
     @Path("/busco-lugar/{userId}")
     public Response editarPerfilBusco(@PathParam("userId") Long userId, PerfilBuscoLugarRequestDTO data) {
@@ -75,7 +75,7 @@ public class PerfilController {
         }
     }
 
-    // Editar perfil "Tengo un lugar"
+    // ---------------------- EDITAR PERFIL TENGO ----------------------
     @PUT
     @Path("/tengo-lugar/{userId}")
     public Response editarPerfilTengo(@PathParam("userId") Long userId, PerfilTengoLugarRequestDTO data) {
@@ -89,7 +89,7 @@ public class PerfilController {
         }
     }
 
-    // Cambiar tipo de perfil
+    // ---------------------- CAMBIAR TIPO PERFIL ----------------------
     @PUT
     @Path("/cambiar-tipo/{userId}")
     public Response cambiarTipoPerfil(@PathParam("userId") Long userId, CambioTipoPerfilDTO dto) {
@@ -103,7 +103,7 @@ public class PerfilController {
         }
     }
 
-    // Obtener perfil de usuario
+    // ---------------------- OBTENER PERFIL ----------------------
     @GET
     @Path("/{userId}")
     public Response obtenerPerfil(@PathParam("userId") Long userId) {
@@ -194,15 +194,13 @@ public class PerfilController {
                 .entity(new MensajeResponseDTO("El usuario no tiene perfil asignado")).build();
     }
 
-    // ----------------- MULTIPART endpoints -----------------
-
-    // Subir foto de perfil
+    // ---------------------- MULTIPART: FOTO PERFIL ----------------------
     @POST
     @Path("/{userId}/foto-perfil")
     @Consumes(MediaType.MULTIPART_FORM_DATA)
     public Response subirFotoPerfil(
             @PathParam("userId") Long userId,
-            @RestForm("file") FileUpload file // Cambio aquí
+            @RestForm("file") FileUpload file
     ) {
         try {
             String url = perfilService.subirFotoPerfil(userId, file);
@@ -214,7 +212,7 @@ public class PerfilController {
         }
     }
 
-    //Fotos Residencia
+    // ---------------------- MULTIPART: FOTOS RESIDENCIA ----------------------
     @POST
     @Path("/{userId}/fotos-residencia")
     @Consumes(MediaType.MULTIPART_FORM_DATA)
@@ -232,5 +230,3 @@ public class PerfilController {
         }
     }
 }
-
-

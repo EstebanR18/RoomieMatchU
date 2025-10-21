@@ -28,7 +28,7 @@ public class UserController {
 
             userService.registerUser(user, dto.password);
 
-            // ✅ Ahora devolvemos un JSON válido
+            // Ahora devolvemos un JSON válido
             return Response.ok(
                     java.util.Map.of(
                             "mensaje", "Registro exitoso"
@@ -53,6 +53,34 @@ public class UserController {
             ).build();
         } catch (Exception e) {
             return Response.status(Response.Status.UNAUTHORIZED).entity(e.getMessage()).build();
+        }
+    }
+
+    @GET
+    @Path("/{id}")
+    public Response getUserById(@PathParam("id") Long id) {
+        try {
+            UserEntity user = userService.getUserById(id);
+
+            if (user == null) {
+                return Response.status(Response.Status.NOT_FOUND)
+                        .entity(java.util.Map.of("error", "Usuario no encontrado"))
+                        .build();
+            }
+
+            return Response.ok(
+                    java.util.Map.of(
+                            "id", user.getId(),
+                            "nombreCompleto", user.getNombreCompleto(),
+                            "correo", user.getCorreo(),
+                            "telefono", user.getTelefono(),
+                            "usuario", user.getUsuario()
+                    )
+            ).build();
+        } catch (Exception e) {
+            return Response.status(Response.Status.INTERNAL_SERVER_ERROR)
+                    .entity(java.util.Map.of("error", e.getMessage()))
+                    .build();
         }
     }
 

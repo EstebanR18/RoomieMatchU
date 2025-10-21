@@ -26,8 +26,8 @@ public class PerfilResponseDTO {
     public BigDecimal presupuesto;
     public String tipoHabitacion;
     public String tiempoEstancia;
-    public Integer personasConvivencia;
-    public LocalDate fechaMudanza;
+    public String personasConvivencia;
+    public String fechaMudanza;
     public String serviciosDeseados;
     public List<String> fotosResidenciaUrls;
 

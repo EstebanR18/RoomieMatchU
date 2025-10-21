@@ -17,8 +17,8 @@ public class PerfilBuscoLugarRequestDTO {
     // NUEVOS
     private String tipoHabitacion;
     private String tiempoEstancia;
-    private Integer personasConvivencia;
-    private LocalDate fechaMudanza;
+    private String personasConvivencia;
+    private String  fechaMudanza;
     private String serviciosDeseados; // csv o json
 
     // Opcionales

@@ -75,4 +75,9 @@ public class UserService {
         }
         return user;
     }
+
+    public UserEntity getUserById(Long id) {
+        return userRepository.findById(id);
+    }
+
 }

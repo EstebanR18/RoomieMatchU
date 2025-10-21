@@ -20,7 +20,7 @@ public class PerfilBuscoLugarEntity {
     private UserEntity user;
 
     // Obligatorios
-    @Column(nullable = false)
+    @Column(nullable = true)
     private String fotoPerfil; // URL
 
     @Column(nullable = false)
@@ -38,8 +38,8 @@ public class PerfilBuscoLugarEntity {
     // NUEVOS CAMPOS
     private String tipoHabitacion;         // Individual, Compartida
     private String tiempoEstancia;         // "<6 meses", "6-12", ">1 año"
-    private Integer personasConvivencia;   // ej: 1,2,3
-    private LocalDate fechaMudanza;
+    private String personasConvivencia;   // ej: 1,2,3
+    private String fechaMudanza;
     @Column(length = 2000)
     private String serviciosDeseados;      // coma-separated o JSON string
 
