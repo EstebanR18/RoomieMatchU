@@ -2,6 +2,7 @@ package com.example.approomiematchu.ui.profileconfig.presentation
 
 import android.content.Context
 import android.net.Uri
+import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.approomiematchu.data.remote.api.ApiService
@@ -242,30 +243,33 @@ class PerfilCuestionarioViewModel(
 
                 val localUri = _state.value.fotoPerfilLocalUri
                 if (localUri != null) {
-                    // Convertimos correctamente el content:// a un File físico
                     val file = uriToFile(context, localUri)
                     if (file != null && file.exists()) {
-                        // Detectar tipo MIME real
                         val mimeType = context.contentResolver.getType(Uri.parse(localUri)) ?: "image/jpeg"
 
-                        // Crear body con nombre y tipo correctos
                         val requestFile = file.asRequestBody(mimeType.toMediaTypeOrNull())
                         val body = MultipartBody.Part.createFormData(
-                            name = "file",               // Debe coincidir con @RestForm("file")
-                            filename = file.name,        // Requerido por Quarkus
+                            name = "file",
+                            filename = file.name,
                             body = requestFile
                         )
 
-                        // Llamar API
                         val response = api.subirFotoPerfil(_state.value.userId, body)
 
                         if (response.isSuccessful) {
-                            val url = response.body() ?: ""
-                            _state.value = _state.value.copy(
-                                fotoPerfilUrl = url,
-                                isLoading = false
-                            )
-                            onSuccess(url)
+                            val uploadResponse = response.body()
+                            val url = uploadResponse?.url ?: uploadResponse?.mensaje ?: ""
+                            Log.d("PerfilEnvio", "📸 URL recibida del backend: $url")
+
+                            if (url.isNotEmpty()) {
+                                _state.value = _state.value.copy(
+                                    fotoPerfilUrl = url,
+                                    isLoading = false
+                                )
+                                onSuccess(url)
+                            } else {
+                                onError("El backend no devolvió una URL válida")
+                            }
                         } else {
                             onError("Error al subir foto: ${response.errorBody()?.string() ?: response.message()}")
                         }
@@ -282,6 +286,7 @@ class PerfilCuestionarioViewModel(
             }
         }
     }
+
 
     fun subirFotosResidencia(files: List<java.io.File>, onSuccess: (List<String>) -> Unit, onError: (String) -> Unit) {
         viewModelScope.launch {
