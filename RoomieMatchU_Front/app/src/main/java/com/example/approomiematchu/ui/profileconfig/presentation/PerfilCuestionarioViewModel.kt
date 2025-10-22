@@ -216,17 +216,23 @@ class PerfilCuestionarioViewModel(
                     mascota = _state.value.mascota
                 )
 
+                Log.d("PerfilEnvio", "📤 Enviando cuerpo TENGO_LUGAR:\n${body}")
+
                 val resp = api.crearPerfilTengoLugar(_state.value.userId, body)
+                val errorBody = resp.errorBody()?.string()
+                Log.d("PerfilEnvio", "📥 Respuesta: code=${resp.code()} body=${resp.body()} error=$errorBody")
+
                 if (resp.isSuccessful) {
                     onSuccess()
                 } else {
-                    onError(resp.message())
+                    onError("Código: ${resp.code()} - ${resp.message()} \n${errorBody ?: "Sin detalles"}")
                 }
             } catch (e: Exception) {
                 onError(e.localizedMessage ?: "Error")
             }
         }
     }
+
 
     // -------------------------
     // SUBIDA DE FOTOS

@@ -21,7 +21,7 @@ public class PerfilTengoLugarEntity {
     private UserEntity user;
 
     // Obligatorios
-    @Column(nullable = false)
+    @Column(nullable = true)
     private String fotoPerfil; // URL
 
     @Column(nullable = false)
