@@ -50,11 +50,55 @@ public class PerfilController {
     // ---------------------- CREAR PERFIL TENGO ----------------------
     @POST
     @Path("/tengo-lugar/{userId}")
+    @Consumes(MediaType.APPLICATION_JSON)
+    @Produces(MediaType.APPLICATION_JSON)
     public Response crearPerfilTengo(@PathParam("userId") Long userId, PerfilTengoLugarRequestDTO data) {
+        System.out.println("🚀 [PerfilController] Recibiendo solicitud de crear perfil TENGO_LUGAR para userId=" + userId);
+
         try {
+            if (data == null) {
+                System.out.println("❌ [PerfilController] El cuerpo del request es NULL");
+                return Response.status(Response.Status.BAD_REQUEST)
+                        .entity(new MensajeResponseDTO("El cuerpo del request está vacío"))
+                        .build();
+            }
+
+            // --- Log de todos los campos ---
+            System.out.println("📦 [PerfilController] Datos recibidos:");
+            System.out.println("   fotoPerfil = " + data.getFotoPerfil());
+            System.out.println("   fechaNacimiento = " + data.getFechaNacimiento());
+            System.out.println("   arriendo = " + data.getArriendo());
+            System.out.println("   cantidadHabitaciones = " + data.getCantidadHabitaciones());
+            System.out.println("   maxRoomies = " + data.getMaxRoomies());
+            System.out.println("   barrio = " + data.getBarrio());
+            System.out.println("   habitos = " + data.getHabitos());
+            System.out.println("   genero = " + data.getGenero());
+            System.out.println("   fuma = " + data.getFuma());
+            System.out.println("   alergico = " + data.getAlergico());
+            System.out.println("   detalleAlergia = " + data.getDetalleAlergia());
+            System.out.println("   idioma = " + data.getIdioma());
+            System.out.println("   telefono = " + data.getTelefono());
+            System.out.println("   descripcionLibre = " + data.getDescripcionLibre());
+            System.out.println("   reglasConvivencia = " + data.getReglasConvivencia());
+            System.out.println("   serviciosIncluidos = " + data.getServiciosIncluidos());
+            System.out.println("   mascota = " + data.getMascota());
+
+            // Validación básica antes de servicio
+            if (data.getFechaNacimiento() == null) {
+                System.out.println("⚠️ [PerfilController] fechaNacimiento es NULL");
+            }
+            if (data.getArriendo() == null) {
+                System.out.println("⚠️ [PerfilController] arriendo es NULL");
+            }
+
             perfilService.crearPerfilTengo(userId, data);
+
+            System.out.println("✅ [PerfilController] Perfil TENGO_LUGAR creado correctamente para userId=" + userId);
             return Response.ok(new MensajeResponseDTO("Perfil 'Tengo un lugar' creado correctamente")).build();
+
         } catch (Exception e) {
+            System.out.println("❌ [PerfilController] Error al crear perfil: " + e.getMessage());
+            e.printStackTrace();
             return Response.status(Response.Status.BAD_REQUEST)
                     .entity(new MensajeResponseDTO(e.getMessage()))
                     .build();
