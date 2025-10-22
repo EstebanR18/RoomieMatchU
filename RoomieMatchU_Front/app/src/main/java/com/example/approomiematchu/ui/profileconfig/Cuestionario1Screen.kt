@@ -161,6 +161,16 @@ fun Cuestionario1Screen(
                             showDialog = true
                         }
 
+                        mesNum !in 1..12 -> {
+                            dialogMessage = "El mes ingresado no es válido (debe ser entre 1 y 12)."
+                            showDialog = true
+                        }
+
+                        diaNum !in 1..diasEnMes(mesNum, anioNum) -> {
+                            dialogMessage = "El día ingresado no existe en el mes seleccionado."
+                            showDialog = true
+                        }
+
                         !esMayorDeEdad(diaNum, mesNum, anioNum) -> {
                             dialogMessage = "Debes ser mayor de 18 años para continuar."
                             showDialog = true
@@ -192,6 +202,7 @@ fun Cuestionario1Screen(
             ) {
                 Text("SIGUIENTE", style = typography.headlineMedium)
             }
+
         }
 
         // ---- Diálogo ----
@@ -221,6 +232,20 @@ fun esMayorDeEdad(dia: Int, mes: Int, anio: Int): Boolean {
     }
     return edad >= 18
 }
+
+fun diasEnMes(mes: Int, anio: Int): Int {
+    return when (mes) {
+        1, 3, 5, 7, 8, 10, 12 -> 31
+        4, 6, 9, 11 -> 30
+        2 -> if (esBisiesto(anio)) 29 else 28
+        else -> 0
+    }
+}
+
+fun esBisiesto(anio: Int): Boolean {
+    return (anio % 4 == 0 && anio % 100 != 0) || (anio % 400 == 0)
+}
+
 
 
 /*
