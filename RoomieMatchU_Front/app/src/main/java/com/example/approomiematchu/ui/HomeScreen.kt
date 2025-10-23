@@ -114,7 +114,7 @@ fun HomeTengoCasaScreen(onDescriptionClick: () -> Unit) {
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .background(MaterialTheme.colorScheme.background)
+                .background(Color(0xFFD2D0D0))
         ) {
             // Contenido principal centrado verticalmente
             Column(
@@ -425,7 +425,7 @@ fun HomeBuscoCasaScreen(onDescriptionClick: () -> Unit) {
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .background(MaterialTheme.colorScheme.background)
+                .background(Color(0xFFD2D0D0))
         ) {
             // Contenido principal centrado verticalmente
             Column(
