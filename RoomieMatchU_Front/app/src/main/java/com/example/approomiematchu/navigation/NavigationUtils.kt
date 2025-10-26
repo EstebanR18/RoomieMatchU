@@ -41,6 +41,34 @@ object NavigationUtils {
     }
 
     /**
+     * Navega al perfil según el tipo de perfil del usuario
+     */
+    fun navigateToProfile(navController: NavController, tipoPerfil: TipoPerfil) {
+        val route = when (tipoPerfil) {
+            TipoPerfil.BUSCO_LUGAR -> AppScreens.PerfilBuscoLugar.route
+            TipoPerfil.TENGO_LUGAR -> AppScreens.PerfilTengoLugar.route
+            else -> AppScreens.ProfileScreen.route
+        }
+        navController.navigate(route) {
+            launchSingleTop = true
+        }
+    }
+
+    /**
+     * Navega a la descripción según el tipo de perfil
+     */
+    fun navigateToDescription(navController: NavController, tipoPerfil: TipoPerfil) {
+        val route = when (tipoPerfil) {
+            TipoPerfil.BUSCO_LUGAR -> AppScreens.DescripcionBuscoCasa.route
+            TipoPerfil.TENGO_LUGAR -> AppScreens.DescripcionTengoCasa.route
+            else -> AppScreens.HomeScreen.route
+        }
+        navController.navigate(route) {
+            launchSingleTop = true
+        }
+    }
+
+    /**
      * Avanza al siguiente paso del cuestionario según el tipo de perfil.
      */
     fun navigateToNextStep(navController: NavController, tipoPerfil: TipoPerfil, pasoActual: Int) {

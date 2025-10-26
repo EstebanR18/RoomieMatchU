@@ -23,11 +23,15 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
 import com.example.approomiematchu.R
+import com.example.approomiematchu.data.remote.dto.PerfilResponse
 import com.example.approomiematchu.ui.theme.RoomieMatchUTheme
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
-fun PerfilTengoLugarScreen() {
+fun PerfilTengoLugarScreen(
+    onBackClick: () -> Unit,
+    userProfile: PerfilResponse? = null
+){
     val scrollState = rememberScrollState()
 
     Column(
@@ -36,7 +40,7 @@ fun PerfilTengoLugarScreen() {
             .background(Color(0xFFD2D0D0))
             .padding(24.dp)
     ) {
-        // 🔹 Encabezado fijo (NO scrolleable)
+        // Encabezado fijo (NO scrolleable)
         Box(
             modifier = Modifier
                 .fillMaxWidth()
@@ -50,6 +54,7 @@ fun PerfilTengoLugarScreen() {
                 modifier = Modifier
                     .align(Alignment.CenterStart)
                     .size(28.dp)
+                    .clickable { onBackClick() }
             )
 
             // Título centrado SIEMPRE
@@ -261,7 +266,10 @@ fun PerfilTengoLugarScreen() {
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
-fun PerfilEditarTengoLugarScreen() {
+fun PerfilTengoLugarScreenEditar(
+    onBackClick: () -> Unit,
+    userProfile: PerfilResponse? = null
+) {
     var isEditing by remember { mutableStateOf(false) }
     var descripcion by remember { mutableStateOf("Soy Laura y busco apartamento en Chapinero.") }
     var precio by remember { mutableStateOf("$600.000") }
@@ -296,6 +304,7 @@ fun PerfilEditarTengoLugarScreen() {
                 modifier = Modifier
                     .align(Alignment.CenterStart)
                     .size(28.dp)
+                    .clickable { onBackClick() }
             )
 
             Text(
@@ -761,7 +770,7 @@ fun cuTextFieldColors(
     )
 }
 
-
+/*
 @Preview(showBackground = true, showSystemUi = true, device = "spec:width=411dp,height=800dp,dpi=420")
 @Composable
 fun PerfilTengoLugarScreenPreview() {
@@ -778,3 +787,4 @@ fun PerfilEditarTengoLugarPreview() {
         PerfilEditarTengoLugarScreen()
     }
 }
+ */

@@ -17,14 +17,16 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.example.approomiematchu.R
-import com.example.approomiematchu.ui.theme.RoomieMatchUTheme
+import com.example.approomiematchu.data.remote.dto.PerfilResponse
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
-fun PerfilScreen() {
+fun PerfilScreenBuscoLugar(
+    onBackClick: () -> Unit,
+    userProfile: PerfilResponse? = null
+) {
     val scrollState = rememberScrollState()
 
     Column(
@@ -47,6 +49,7 @@ fun PerfilScreen() {
                 modifier = Modifier
                     .align(Alignment.CenterStart)
                     .size(28.dp)
+                    .clickable { onBackClick() }
             )
 
             // Título centrado SIEMPRE
@@ -575,12 +578,12 @@ fun customTextFieldColors(
     )
 }
 
-
+/*
 @Preview(showBackground = true, showSystemUi = true, device = "spec:width=411dp,height=800dp,dpi=420")
 @Composable
 fun PerfilScreenPreview() {
     RoomieMatchUTheme {
-        PerfilScreen()
+        PerfilScreenBuscoLugar()
     }
 }
 
@@ -592,3 +595,4 @@ fun PerfilEditarPreview() {
         PerfilEditarScreen()
     }
 }
+ */
