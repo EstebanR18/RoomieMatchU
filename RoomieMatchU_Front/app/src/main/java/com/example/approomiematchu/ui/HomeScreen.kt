@@ -859,8 +859,9 @@ fun SectionTitle(text: String) {
     )
 }
 
+/*
 @Composable
-fun ChipRow(items: List<String>) {
+fun PerfilChipRow(items: List<String>) {
     FlowRow(
         horizontalArrangement = Arrangement.spacedBy(8.dp),
         verticalArrangement = Arrangement.spacedBy(8.dp)
@@ -877,6 +878,8 @@ fun ChipRow(items: List<String>) {
         }
     }
 }
+
+ */
 
 /*
 @Preview(showBackground = true, showSystemUi = true, device = "spec:width=411dp,height=891dp,dpi=420")

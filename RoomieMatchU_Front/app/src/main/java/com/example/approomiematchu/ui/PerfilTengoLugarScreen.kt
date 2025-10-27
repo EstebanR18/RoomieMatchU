@@ -31,59 +31,66 @@ import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.Locale
 
-@OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun PerfilTengoLugarScreen(
     onBackClick: () -> Unit,
     userProfile: PerfilResponse? = null,
     userData: UserResponse? = null
 ) {
+    var isEditing by remember { mutableStateOf(false) }
+
+    if (isEditing) {
+        PerfilEditarScreenTengoLugar(
+            userProfile = userProfile,
+            userData = userData,
+            onBackClick = { isEditing = false }
+        )
+    } else {
+        PerfilVerScreenTengoLugar(
+            onBackClick = onBackClick,
+            onEditClick = { isEditing = true },
+            userProfile = userProfile,
+            userData = userData
+        )
+    }
+}
+
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+fun PerfilVerScreenTengoLugar(
+    onBackClick: () -> Unit,
+    onEditClick: () -> Unit,
+    userProfile: PerfilResponse? = null,
+    userData: UserResponse? = null
+) {
     val scrollState = rememberScrollState()
 
-    // Función para calcular la edad
-    fun calcularEdad(fechaNacimiento: String): Int? {
+    // 🔹 Calcular edad
+    fun calcularEdad(fechaNacimiento: String?): Int? {
         return try {
+            if (fechaNacimiento == null) return null
             val formato = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
             val fechaNac = formato.parse(fechaNacimiento)
             val hoy = Calendar.getInstance()
             val nacimiento = Calendar.getInstance().apply { time = fechaNac }
-
             var edad = hoy.get(Calendar.YEAR) - nacimiento.get(Calendar.YEAR)
-
-            // Ajustar si aún no ha pasado el cumpleaños este año
-            if (hoy.get(Calendar.DAY_OF_YEAR) < nacimiento.get(Calendar.DAY_OF_YEAR)) {
-                edad--
-            }
-
+            if (hoy.get(Calendar.DAY_OF_YEAR) < nacimiento.get(Calendar.DAY_OF_YEAR)) edad--
             edad
-        } catch (e: Exception) {
-            null // Retornar null si hay error en el parsing
-        }
+        } catch (e: Exception) { null }
     }
 
-    // Calcular nombre y edad
     val nombreConEdad = remember(userProfile, userData) {
-        // Usar el nombre real de userData si está disponible
-        val nombreReal = userData?.nombreCompleto ?: "Nombre Usuario"
-
+        val nombreReal = userData?.nombreCompleto ?: "Mi perfil"
         userProfile?.fechaNacimiento?.let { fechaNac ->
             val edad = calcularEdad(fechaNac)
-            if (edad != null) {
-                "$nombreReal, $edad"
-            } else {
-                nombreReal
-            }
+            if (edad != null) "$nombreReal, $edad" else nombreReal
         } ?: nombreReal
     }
 
-    // Extraer datos del perfil - sin valores por defecto
-    val descripcion = userProfile?.descripcionLibre
-    val barrio = userProfile?.barrio
-    val precio = userProfile?.arriendo?.let { "$${it.toInt()}" }
-    val habitaciones = userProfile?.cantidadHabitaciones?.toString()
-    val maxRoomies = userProfile?.maxRoomies?.toString()
     val serviciosIncluidos = userProfile?.serviciosIncluidos
+        ?.split(",")?.map { it.trim() }?.filter { it.isNotEmpty() } ?: emptyList()
     val reglasConvivencia = userProfile?.reglasConvivencia
+        ?.split(",")?.map { it.trim() }?.filter { it.isNotEmpty() } ?: emptyList()
 
     Column(
         modifier = Modifier
@@ -91,135 +98,91 @@ fun PerfilTengoLugarScreen(
             .background(Color(0xFFD2D0D0))
             .padding(24.dp)
     ) {
-        // 🔹 Encabezado fijo (NO scrolleable)
+        // 🔹 Encabezado
         Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(bottom = 8.dp)
+            modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp)
         ) {
-            // Flecha de atrás (izquierda)
             Icon(
                 painter = painterResource(id = R.drawable.ic_atras_screens),
                 contentDescription = "Atrás",
                 tint = MaterialTheme.colorScheme.primary,
-                modifier = Modifier
-                    .align(Alignment.CenterStart)
-                    .size(28.dp)
-                    .clickable { onBackClick() }
+                modifier = Modifier.align(Alignment.CenterStart).size(28.dp).clickable { onBackClick() }
             )
 
-            // Título centrado SIEMPRE
             Text(
-                text = "PERFIL",
+                text = "MI PERFIL",
                 style = MaterialTheme.typography.displayLarge,
                 color = MaterialTheme.colorScheme.primary,
                 textAlign = TextAlign.Center,
                 modifier = Modifier.align(Alignment.Center)
             )
 
-            // Iconos de la derecha
-            Row(
-                modifier = Modifier
-                    .align(Alignment.CenterEnd),
-                horizontalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
-                Icon(
-                    imageVector = Icons.Default.Edit,
-                    contentDescription = "Editar",
-                    tint = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.size(30.dp)
-                )
-                Icon(
-                    imageVector = Icons.Default.Settings,
-                    contentDescription = "Ajustes",
-                    tint = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.size(30.dp)
-                )
-            }
+            Icon(
+                imageVector = Icons.Default.Edit,
+                contentDescription = "Editar",
+                tint = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.align(Alignment.CenterEnd).size(30.dp).clickable { onEditClick() }
+            )
         }
 
-        Spacer(modifier = Modifier.height(8.dp))
-
-        // Columna interna con scroll (contenido)
+        // 🔹 Contenido
         Column(
-            modifier = Modifier
-                .verticalScroll(scrollState)
-                .fillMaxSize()
-                .padding(bottom = 80.dp) // espacio al final del scroll
+            modifier = Modifier.verticalScroll(scrollState).padding(bottom = 100.dp)
         ) {
-            // 🔹 Foto de perfil
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(180.dp),
-                contentAlignment = Alignment.Center
+            // Foto de perfil
+            Row(
+                modifier = Modifier.fillMaxWidth().height(180.dp),
+                horizontalArrangement = Arrangement.Center,
+                verticalAlignment = Alignment.Bottom
             ) {
-                // Usar foto real si está disponible
-                if (!userProfile?.fotoPerfil.isNullOrEmpty()) {
+                val fotoPerfil = userProfile?.fotoPerfil
+                if (!fotoPerfil.isNullOrEmpty()) {
                     AsyncImage(
-                        model = userProfile?.fotoPerfil,
+                        model = fotoPerfil,
                         contentDescription = "Foto de perfil",
                         modifier = Modifier
                             .size(160.dp)
                             .clip(CircleShape)
-                            .border(
-                                width = 5.dp,
-                                color = MaterialTheme.colorScheme.primary,
-                                shape = CircleShape
-                            )
-                            .clickable { },
+                            .border(5.dp, MaterialTheme.colorScheme.primary, CircleShape),
                         contentScale = ContentScale.Crop
                     )
                 } else {
-                    // No mostrar imagen por defecto si no hay foto
-                    Box(
+                    Image(
+                        painter = painterResource(id = R.drawable.imagen2),
+                        contentDescription = "Foto de perfil",
                         modifier = Modifier
                             .size(160.dp)
                             .clip(CircleShape)
-                            .border(
-                                width = 5.dp,
-                                color = MaterialTheme.colorScheme.primary,
-                                shape = CircleShape
-                            )
-                            .background(Color.LightGray),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Person,
-                            contentDescription = "Sin foto",
-                            tint = Color.Gray,
-                            modifier = Modifier.size(60.dp)
-                        )
-                    }
+                            .border(5.dp, MaterialTheme.colorScheme.primary, CircleShape),
+                        contentScale = ContentScale.Crop
+                    )
                 }
             }
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            // Nombre con edad (solo mostrar si no está vacío)
-            if (nombreConEdad.isNotEmpty()) {
-                Text(
-                    text = nombreConEdad,
-                    style = MaterialTheme.typography.displayLarge,
-                    color = MaterialTheme.colorScheme.primary,
-                    textAlign = TextAlign.Center,
-                    modifier = Modifier.fillMaxWidth()
-                )
-                Spacer(modifier = Modifier.height(16.dp))
-            }
+            Text(
+                text = nombreConEdad,
+                style = MaterialTheme.typography.displayLarge,
+                color = MaterialTheme.colorScheme.primary,
+                textAlign = TextAlign.Center,
+                modifier = Modifier.fillMaxWidth()
+            )
 
-            // Fotos de la residencia (solo mostrar si hay datos)
-            userProfile?.fotosResidenciaUrls?.let { fotosResidencia ->
-                if (fotosResidencia.isNotEmpty()) {
+            Spacer(modifier = Modifier.height(16.dp))
+
+            // 🔸 Fotos de la residencia
+            userProfile?.fotosResidenciaUrls?.let { fotos ->
+                if (fotos.isNotEmpty()) {
                     ResidenciaPhotosGrid(
-                        photos = fotosResidencia,
-                        onAddPhoto = { /* acción para agregar foto */ }
+                        photos = fotos,
+                        onAddPhoto = { /* agregar nueva foto más adelante */ }
                     )
                     Spacer(modifier = Modifier.height(16.dp))
                 }
             }
 
-            // 🔹 Descripción - SIEMPRE mostrar el contenedor (vacío si no hay datos)
+            // 🔸 Descripción
             Card(
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(16.dp),
@@ -228,141 +191,109 @@ fun PerfilTengoLugarScreen(
             ) {
                 Column(modifier = Modifier.padding(16.dp)) {
                     Text(
-                        text = "Descripción",
+                        text = "Descripción del lugar",
                         style = MaterialTheme.typography.headlineLarge,
                         color = MaterialTheme.colorScheme.primary
                     )
-
                     Spacer(modifier = Modifier.height(8.dp))
-
                     Text(
-                        text = descripcion ?: "Agrega una breve descripción del lugar",
+                        text = userProfile?.descripcionLibre?.takeIf { it.isNotEmpty() }
+                            ?: "Aún no tienes una descripción. ¡Agrega una para contar más sobre tu lugar!",
                         style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onBackground
+                        color = if (userProfile?.descripcionLibre.isNullOrEmpty()) Color.Gray else Color.Black
                     )
                 }
             }
 
             Spacer(modifier = Modifier.height(24.dp))
 
-            // Barrio (solo mostrar si existe)
-            barrio?.let {
-                Text(
-                    text = barrio,
-                    style = MaterialTheme.typography.headlineLarge,
-                    color = MaterialTheme.colorScheme.primary
-                )
-                Spacer(modifier = Modifier.height(20.dp))
-            }
+            // Zona / barrio
+            Text("Zona o barrio", style = MaterialTheme.typography.headlineLarge, color = MaterialTheme.colorScheme.primary)
+            PerfilChipRow(listOfNotNull(userProfile?.barrio ?: "No definido"))
 
-            // Estilo de vida (solo mostrar si hay datos)
-            val habitosChips = mutableListOf<String>()
-            userProfile?.fuma?.let { if (!it) habitosChips.add("No fumo") }
-            userProfile?.mascota?.let { if (it) habitosChips.add("Tengo mascotas") else habitosChips.add("Estoy dispuesto a vivir con mascotas") }
-            userProfile?.alergico?.let { if (!it) habitosChips.add("Sin alergias") }
+            Spacer(modifier = Modifier.height(16.dp))
 
-            if (habitosChips.isNotEmpty()) {
-                Text(
-                    text = "Estilo de vida",
-                    style = MaterialTheme.typography.headlineLarge,
-                    color = MaterialTheme.colorScheme.primary
-                )
-                FlowRow(
-                    horizontalArrangement = Arrangement.spacedBy(10.dp),
-                    verticalArrangement = Arrangement.spacedBy(10.dp)
-                ) {
-                    habitosChips.forEach { Chip(it) }
-                }
-                Spacer(modifier = Modifier.height(20.dp))
-            }
+            // Precio
+            Text("Precio del arriendo", style = MaterialTheme.typography.headlineLarge, color = MaterialTheme.colorScheme.primary)
+            PerfilChipRow(listOfNotNull(userProfile?.arriendo?.let { "$${"%,.0f".format(it)}" } ?: "No definido"))
 
-            // Precio (solo mostrar si existe)
-            precio?.let {
-                Text(
-                    text = "Precio del arrendamiento",
-                    style = MaterialTheme.typography.headlineLarge,
-                    color = MaterialTheme.colorScheme.primary
-                )
-                Chip(it)
-                Spacer(modifier = Modifier.height(20.dp))
-            }
+            Spacer(modifier = Modifier.height(16.dp))
 
-            // Habitaciones disponibles (solo mostrar si existe)
-            habitaciones?.let {
-                Text(
-                    text = "Habitaciones disponibles",
-                    style = MaterialTheme.typography.headlineLarge,
-                    color = MaterialTheme.colorScheme.primary
-                )
-                Chip(it)
-                Spacer(modifier = Modifier.height(20.dp))
-            }
+            // Habitaciones
+            Text("Habitaciones disponibles", style = MaterialTheme.typography.headlineLarge, color = MaterialTheme.colorScheme.primary)
+            PerfilChipRow(listOfNotNull(userProfile?.cantidadHabitaciones?.toString() ?: "No definido"))
 
-            // Máximo de roomies (solo mostrar si existe)
-            maxRoomies?.let {
-                Text(
-                    text = "Máximo de roomies",
-                    style = MaterialTheme.typography.headlineLarge,
-                    color = MaterialTheme.colorScheme.primary
-                )
-                Chip(it)
-                Spacer(modifier = Modifier.height(20.dp))
-            }
+            Spacer(modifier = Modifier.height(16.dp))
 
-            // Servicios incluidos (solo mostrar si hay datos)
-            serviciosIncluidos?.let { serviciosStr ->
-                val servicios = serviciosStr.split(",").map { it.trim() }.filter { it.isNotEmpty() }
-                if (servicios.isNotEmpty()) {
-                    Text(
-                        text = "Servicios incluidos en el arriendo",
-                        style = MaterialTheme.typography.headlineLarge,
-                        color = MaterialTheme.colorScheme.primary
-                    )
-                    FlowRow(
-                        horizontalArrangement = Arrangement.spacedBy(10.dp),
-                        verticalArrangement = Arrangement.spacedBy(10.dp)
-                    ) {
-                        servicios.forEach { Chip(it) }
-                    }
-                    Spacer(modifier = Modifier.height(20.dp))
-                }
-            }
+            // Máximo de roomies
+            Text("Máximo de roomies", style = MaterialTheme.typography.headlineLarge, color = MaterialTheme.colorScheme.primary)
+            PerfilChipRow(listOfNotNull(userProfile?.maxRoomies?.toString() ?: "No definido"))
 
-            // Reglas de convivencia (solo mostrar si hay datos)
-            reglasConvivencia?.let { reglasStr ->
-                val reglas = reglasStr.split(",").map { it.trim() }.filter { it.isNotEmpty() }
-                if (reglas.isNotEmpty()) {
-                    Text(
-                        text = "Reglas de convivencia",
-                        style = MaterialTheme.typography.headlineLarge,
-                        color = MaterialTheme.colorScheme.primary
-                    )
-                    FlowRow(
-                        horizontalArrangement = Arrangement.spacedBy(10.dp),
-                        verticalArrangement = Arrangement.spacedBy(10.dp)
-                    ) {
-                        reglas.forEach { Chip(it) }
-                    }
-                    Spacer(modifier = Modifier.height(20.dp))
-                }
-            }
+            Spacer(modifier = Modifier.height(16.dp))
 
-            Spacer(modifier = Modifier.height(100.dp)) // espacio final visible
+            // Servicios incluidos
+            Text("Servicios incluidos en el arriendo", style = MaterialTheme.typography.headlineLarge, color = MaterialTheme.colorScheme.primary)
+            PerfilChipRow(serviciosIncluidos.ifEmpty { listOf("No especificado") })
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            // Reglas convivencia
+            Text("Reglas de convivencia", style = MaterialTheme.typography.headlineLarge, color = MaterialTheme.colorScheme.primary)
+            PerfilChipRow(reglasConvivencia.ifEmpty { listOf("No especificado") })
+
+            Spacer(modifier = Modifier.height(50.dp))
         }
     }
 }
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
-fun PerfilTengoLugarScreenEditar(
-    onBackClick: () -> Unit,
-    userProfile: PerfilResponse? = null
+fun PerfilEditarScreenTengoLugar(
+    userProfile: PerfilResponse? = null,
+    userData: UserResponse? = null,
+    onBackClick: () -> Unit
 ) {
-    var isEditing by remember { mutableStateOf(false) }
-    var descripcion by remember { mutableStateOf("Soy Laura y busco apartamento en Chapinero.") }
-    var precio by remember { mutableStateOf("$600.000") }
-    var personas by remember { mutableStateOf("3") }
+    val scrollState = rememberScrollState()
 
+    // 📆 Calcular edad
+    fun calcularEdad(fechaNacimiento: String?): Int? {
+        return try {
+            if (fechaNacimiento == null) return null
+            val formato = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
+            val fechaNac = formato.parse(fechaNacimiento)
+            val hoy = Calendar.getInstance()
+            val nacimiento = Calendar.getInstance().apply { time = fechaNac }
+            var edad = hoy.get(Calendar.YEAR) - nacimiento.get(Calendar.YEAR)
+            if (hoy.get(Calendar.DAY_OF_YEAR) < nacimiento.get(Calendar.DAY_OF_YEAR)) edad--
+            edad
+        } catch (e: Exception) { null }
+    }
+
+    // 🧩 Estados editables
+    var descripcion by remember { mutableStateOf(userProfile?.descripcionLibre ?: "") }
+    var arriendo by remember { mutableStateOf(userProfile?.arriendo?.toString() ?: "") }
+    var cantidadHabitaciones by remember { mutableStateOf(userProfile?.cantidadHabitaciones?.toString() ?: "") }
+    var maxRoomies by remember { mutableStateOf(userProfile?.maxRoomies?.toString() ?: "") }
+
+    var barrio by remember { mutableStateOf(userProfile?.barrio ?: "") }
+    var serviciosIncluidos by remember { mutableStateOf(userProfile?.serviciosIncluidos ?: "") }
+    var reglasConvivencia by remember { mutableStateOf(userProfile?.reglasConvivencia ?: "") }
+
+    // Fotos residencia
+    val fotosResidencia = remember { mutableStateListOf<String>().apply {
+        addAll(userProfile?.fotosResidenciaUrls ?: emptyList())
+    }}
+
+    // Nombre con edad
+    val nombreConEdad = remember(userProfile, userData) {
+        val nombre = userData?.nombreCompleto ?: "Usuario"
+        userProfile?.fechaNacimiento?.let { fecha ->
+            val edad = calcularEdad(fecha)
+            if (edad != null) "$nombre, $edad" else nombre
+        } ?: nombre
+    }
+
+    // Zonas disponibles
     val zonas = listOf(
         "Usaquén", "Chapinero", "Santa Fe", "San Cristóbal", "Usme",
         "Tunjuelito", "Bosa", "Kennedy", "Fontibón", "Engativá",
@@ -371,28 +302,19 @@ fun PerfilTengoLugarScreenEditar(
         "Rafael Uribe Uribe", "Ciudad Bolívar", "Sumapaz"
     )
 
-    val scrollState = rememberScrollState()
-
     Column(
         modifier = Modifier
             .fillMaxSize()
             .background(Color(0xFFD2D0D0))
             .padding(24.dp)
     ) {
-        // 🔹 Encabezado fijo
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(bottom = 8.dp)
-        ) {
+        // 🔹 Encabezado
+        Box(modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp)) {
             Icon(
                 painter = painterResource(id = R.drawable.ic_atras_screens),
                 contentDescription = "Atrás",
                 tint = MaterialTheme.colorScheme.primary,
-                modifier = Modifier
-                    .align(Alignment.CenterStart)
-                    .size(28.dp)
-                    .clickable { onBackClick() }
+                modifier = Modifier.align(Alignment.CenterStart).size(28.dp).clickable { onBackClick() }
             )
 
             Text(
@@ -402,58 +324,56 @@ fun PerfilTengoLugarScreenEditar(
                 textAlign = TextAlign.Center,
                 modifier = Modifier.align(Alignment.Center)
             )
-
-            Icon(
-                imageVector = Icons.Default.Settings,
-                contentDescription = "Ajustes",
-                tint = MaterialTheme.colorScheme.primary,
-                modifier = Modifier
-                    .align(Alignment.CenterEnd)
-                    .size(30.dp)
-            )
         }
 
-        //  Scrollable content
+        // 🔹 Contenido con scroll
         Column(
-            modifier = Modifier
-                .verticalScroll(scrollState, enabled = true)
-                .fillMaxSize()
-                .padding(bottom = 100.dp)
+            modifier = Modifier.verticalScroll(scrollState).padding(bottom = 100.dp)
         ) {
-            // Foto con ícono cámara
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(180.dp),
-                horizontalArrangement = Arrangement.Center,
-                verticalAlignment = Alignment.Bottom
+            // 📷 Foto de perfil
+            Box(
+                modifier = Modifier.fillMaxWidth(),
+                contentAlignment = Alignment.Center
             ) {
-                Image(
-                    painter = painterResource(id = R.drawable.imagen2),
-                    contentDescription = "Foto de perfil",
-                    modifier = Modifier
-                        .size(160.dp)
-                        .clip(CircleShape)
-                        .border(5.dp, MaterialTheme.colorScheme.primary, CircleShape),
-                    contentScale = ContentScale.Crop
-                )
+                if (!userProfile?.fotoPerfil.isNullOrEmpty()) {
+                    AsyncImage(
+                        model = userProfile?.fotoPerfil,
+                        contentDescription = "Foto de perfil",
+                        modifier = Modifier
+                            .size(160.dp)
+                            .clip(CircleShape)
+                            .border(5.dp, MaterialTheme.colorScheme.primary, CircleShape),
+                        contentScale = ContentScale.Crop
+                    )
+                } else {
+                    Image(
+                        painter = painterResource(id = R.drawable.imagen2),
+                        contentDescription = "Foto perfil",
+                        modifier = Modifier
+                            .size(160.dp)
+                            .clip(CircleShape)
+                            .border(5.dp, MaterialTheme.colorScheme.primary, CircleShape),
+                        contentScale = ContentScale.Crop
+                    )
+                }
 
                 Icon(
                     imageVector = Icons.Default.AddAPhoto,
-                    contentDescription = "Agregar foto",
+                    contentDescription = "Cambiar foto",
                     tint = MaterialTheme.colorScheme.primary,
                     modifier = Modifier
-                        .padding(start = 8.dp)
+                        .align(Alignment.BottomEnd)
+                        .offset(x = (-8).dp, y = (-8).dp)
                         .size(36.dp)
-                        .clickable { /* acción para cambiar foto */ }
+                        .clickable { /* TODO cambiar foto */ }
                 )
             }
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            // Nombre
+            // Nombre + edad
             Text(
-                "Pablo, 20",
+                text = nombreConEdad,
                 style = MaterialTheme.typography.displayLarge,
                 color = MaterialTheme.colorScheme.primary,
                 textAlign = TextAlign.Center,
@@ -462,218 +382,197 @@ fun PerfilTengoLugarScreenEditar(
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            // Fotos de la residencia (editable)
-            val fotosResidencia = remember { mutableStateListOf(
-                "https://picsum.photos/200/300",
-                "https://picsum.photos/201/300"
-            )}
-
+            // 📸 Fotos residencia editables
             ResidenciaPhotosGridEditar(
                 photos = fotosResidencia,
-                onAddPhoto = { /* agregar foto */ },
-                onEditPhoto = { index -> /* editar foto fotosResidencia[index] */ },
+                onAddPhoto = { fotosResidencia.add("https://picsum.photos/200/300?${fotosResidencia.size}") },
+                onEditPhoto = { /* TODO editar */ },
                 onDeletePhoto = { index -> fotosResidencia.removeAt(index) }
             )
 
+            Spacer(modifier = Modifier.height(24.dp))
 
-            Spacer(modifier = Modifier.height(16.dp))
-
-            // Descripción editable con estilo de Card
-            var isEditing by remember { mutableStateOf(false) }
-            var descripcion by remember { mutableStateOf("Soy Pablo y tengo apartamento para compartir en Chapinero amoblado.") }
-
+            // 🧾 Descripción
             Card(
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(16.dp),
                 colors = CardDefaults.cardColors(containerColor = Color.White),
                 elevation = CardDefaults.cardElevation(4.dp)
             ) {
-                Box(modifier = Modifier.padding(16.dp)) {
-                    Column(modifier = Modifier.fillMaxWidth()) {
-                        Text(
-                            text = "Descripción",
-                            style = MaterialTheme.typography.headlineLarge,
-                            color = MaterialTheme.colorScheme.primary
-                        )
-
-                        Spacer(modifier = Modifier.height(8.dp))
-
-                        if (isEditing) {
-                            TextField(
-                                value = descripcion,
-                                onValueChange = { descripcion = it },
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .heightIn(min = 100.dp),
-                                textStyle = MaterialTheme.typography.bodyMedium.copy(color = Color.Black),
-                                colors = cuTextFieldColors(
-                                    containerColor = Color.Transparent,
-                                    focusedIndicatorColor = Color.Transparent,
-                                    unfocusedIndicatorColor = Color.Transparent,
-                                    cursorColor = Color.White
-                                ),
-                                shape = RoundedCornerShape(12.dp)
-                            )
-                        } else {
-                            Text(
-                                text = descripcion,
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = MaterialTheme.colorScheme.onBackground
-                            )
-                        }
-                    }
-
-                    Icon(
-                        imageVector = Icons.Default.Edit,
-                        contentDescription = "Editar descripción",
-                        tint = MaterialTheme.colorScheme.primary,
+                Column(modifier = Modifier.padding(16.dp)) {
+                    Text(
+                        text = "Descripción del lugar",
+                        style = MaterialTheme.typography.headlineLarge,
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    TextField(
+                        value = descripcion,
+                        onValueChange = { descripcion = it },
+                        placeholder = { Text("Aquí puedes agregar una descripción del lugar") },
+                        textStyle = MaterialTheme.typography.bodyMedium,
+                        colors = customTextFieldColors(
+                            containerColor = Color.Transparent,
+                            focusedIndicatorColor = Color.Transparent,
+                            unfocusedIndicatorColor = Color.Transparent,
+                            cursorColor = Color.White
+                        ),
                         modifier = Modifier
-                            .align(Alignment.BottomEnd)
-                            .size(24.dp)
-                            .clickable { isEditing = !isEditing }
+                            .fillMaxWidth()
+                            .heightIn(min = 100.dp),
+                        shape = RoundedCornerShape(12.dp)
                     )
                 }
             }
 
             Spacer(modifier = Modifier.height(24.dp))
 
-            // 🔹 Zona preferida
-            Text(
-                "Zona preferida",
-                style = MaterialTheme.typography.headlineLarge,
-                color = MaterialTheme.colorScheme.primary
-            )
-            Row(
-                modifier = Modifier
-                    .horizontalScroll(rememberScrollState())
-                    .padding(vertical = 8.dp),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
+            // 🏙️ Zona / barrio
+            Text("Zona o barrio", style = MaterialTheme.typography.headlineLarge, color = MaterialTheme.colorScheme.primary)
+            Spacer(modifier = Modifier.height(8.dp))
+            FlowRow(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                 zonas.forEach { zona ->
-                    Chip(zona)
+                    val selected = zona == barrio
+                    Chip(
+                        text = zona,
+                        isSelected = selected,
+                        onClick = { barrio = zona }
+                    )
                 }
             }
 
-            Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(24.dp))
 
-            // 🔹 Campos (mismos del perfil principal)
+            /* 💰 Precio del arriendo */
             Text(
-                "Estilo de vida",
+                "Precio del arriendo",
                 style = MaterialTheme.typography.headlineLarge,
                 color = MaterialTheme.colorScheme.primary
             )
-            FlowRow(
-                horizontalArrangement = Arrangement.spacedBy(10.dp),
-                verticalArrangement = Arrangement.spacedBy(10.dp)
-            ) {
-                listOf(
-                    "No fumo", "Si fumo",
-                    "No estoy dispuesto a vivir con mascotas", "Estoy dispuesto a vivir con mascotas",
-                    "Sin alergias", "Con alergias",
-                    "No tengo mascotas", "Tengo mascotas"
-                ).forEachIndexed { index, item ->
-                    Chip(item)
-                }
-            }
-
-            Spacer(modifier = Modifier.height(16.dp))
-
-            // Precio editable
-            Text(
-                "Precio del arrendamiento",
-                style = MaterialTheme.typography.headlineLarge,
-                color = MaterialTheme.colorScheme.primary
-            )
-
             TextField(
-                value = precio,
-                onValueChange = { precio = it },
+                value = arriendo,
+                onValueChange = { arriendo = it },
+                placeholder = { Text("Ejemplo: 1.400.000") },
                 textStyle = MaterialTheme.typography.bodyMedium,
-                colors = cuTextFieldColors(
-                    containerColor = Color.Transparent,
-                    focusedIndicatorColor = Color.Transparent,
-                    unfocusedIndicatorColor = Color.Transparent,
-                    cursorColor = Color.White
-                ),
-                shape = RoundedCornerShape(50)
-            )
-
-            Spacer(modifier = Modifier.height(16.dp))
-
-            // Habitaciones editable
-            Text(
-                "Habitaciones disponibles",
-                style = MaterialTheme.typography.headlineLarge,
-                color = MaterialTheme.colorScheme.primary
-            )
-
-            TextField(
-                value = personas,
-                onValueChange = { personas = it },
-                textStyle = MaterialTheme.typography.bodyMedium,
-                colors = cuTextFieldColors(
+                colors = customTextFieldColors(
                     containerColor = Color.White,
                     cursorColor = MaterialTheme.colorScheme.primary,
                     focusedIndicatorColor = Color.Transparent,
                     unfocusedIndicatorColor = Color.Transparent
                 ),
-                shape = RoundedCornerShape(50)
+                shape = RoundedCornerShape(50),
+                modifier = Modifier.fillMaxWidth()
             )
 
-            Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(24.dp))
 
-            // Servicios incluidos en el arriendo
+            /* 🏠 Habitaciones disponibles */
             Text(
-                "Servicios incluidos en el arriendo",
+                "Habitaciones disponibles",
                 style = MaterialTheme.typography.headlineLarge,
                 color = MaterialTheme.colorScheme.primary
             )
-            FlowRow(
-                horizontalArrangement = Arrangement.spacedBy(10.dp),
-                verticalArrangement = Arrangement.spacedBy(10.dp)
-            ) {
-                listOf(
-                    "Internet", "Amoblado", "Lavadora",
-                    "Baño Privado", "Televisión", "Secadora",
-                    "Agua Caliente", "Cocina equipada",
-                    "Nevera compartida", "Parqueadero",
-                    "Acceso inclusivo", "Espacios comunes (sala, comedor)"
-                ).forEach { Chip(it) }
+            TextField(
+                value = cantidadHabitaciones,
+                onValueChange = { cantidadHabitaciones = it },
+                placeholder = { Text("Ejemplo: 2") },
+                textStyle = MaterialTheme.typography.bodyMedium,
+                colors = customTextFieldColors(
+                    containerColor = Color.White,
+                    cursorColor = MaterialTheme.colorScheme.primary,
+                    focusedIndicatorColor = Color.Transparent,
+                    unfocusedIndicatorColor = Color.Transparent
+                ),
+                shape = RoundedCornerShape(50),
+                modifier = Modifier.fillMaxWidth()
+            )
+
+            Spacer(modifier = Modifier.height(24.dp))
+
+            /* 👥 Máximo de roomies */
+            Text(
+                "Máximo de roomies",
+                style = MaterialTheme.typography.headlineLarge,
+                color = MaterialTheme.colorScheme.primary
+            )
+            TextField(
+                value = maxRoomies,
+                onValueChange = { maxRoomies = it },
+                placeholder = { Text("Ejemplo: 3") },
+                textStyle = MaterialTheme.typography.bodyMedium,
+                colors = customTextFieldColors(
+                    containerColor = Color.White,
+                    cursorColor = MaterialTheme.colorScheme.primary,
+                    focusedIndicatorColor = Color.Transparent,
+                    unfocusedIndicatorColor = Color.Transparent
+                ),
+                shape = RoundedCornerShape(50),
+                modifier = Modifier.fillMaxWidth()
+            )
+
+            Spacer(modifier = Modifier.height(24.dp))
+
+            // 🧾 Servicios incluidos
+            Text("Servicios incluidos en el arriendo", style = MaterialTheme.typography.headlineLarge, color = MaterialTheme.colorScheme.primary)
+            val servicios = listOf(
+                "Internet", "Amoblado", "Lavadora", "Baño Privado", "Televisión", "Secadora",
+                "Agua Caliente", "Cocina equipada", "Nevera compartida", "Parqueadero",
+                "Acceso inclusivo", "Espacios comunes"
+            )
+            val seleccionadosServicios = remember { mutableStateListOf<String>().apply {
+                addAll(userProfile?.serviciosIncluidos?.split(",")?.map { it.trim() } ?: emptyList())
+            }}
+
+            FlowRow(horizontalArrangement = Arrangement.spacedBy(10.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                servicios.forEach { servicio ->
+                    val seleccionado = seleccionadosServicios.contains(servicio)
+                    Chip(
+                        text = servicio,
+                        isSelected = seleccionado,
+                        onClick = {
+                            if (seleccionado) seleccionadosServicios.remove(servicio)
+                            else seleccionadosServicios.add(servicio)
+                            serviciosIncluidos = seleccionadosServicios.joinToString(", ")
+                        }
+                    )
+                }
             }
 
-            Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(24.dp))
 
-            // Reglas básicas de la casa
-            Text(
-                "Reglas básicas de la casa",
-                style = MaterialTheme.typography.headlineLarge,
-                color = MaterialTheme.colorScheme.primary
+            // 📋 Reglas de convivencia
+            Text("Reglas de convivencia", style = MaterialTheme.typography.headlineLarge, color = MaterialTheme.colorScheme.primary)
+            val reglas = listOf(
+                "Se aceptan visitas", "Hay horarios", "Se permiten fiestas", "Se aceptan mascotas",
+                "Cada uno cocina", "Cada uno hace limpieza", "No hay problema por el ruido"
             )
+            val seleccionadasReglas = remember { mutableStateListOf<String>().apply {
+                addAll(userProfile?.reglasConvivencia?.split(",")?.map { it.trim() } ?: emptyList())
+            }}
 
-            val reglasSeleccionadas = remember { mutableStateListOf<String>() }
-
-            FlowRow(
-                horizontalArrangement = Arrangement.spacedBy(10.dp),
-                verticalArrangement = Arrangement.spacedBy(10.dp)
-            ) {
-                listOf(
-                    "Se aceptan visitas",
-                    "Hay horarios",
-                    "Se permiten las fiestas",
-                    "Se aceptan mascotas",
-                    "Cada uno cocina",
-                    "Cada uno hace limpieza",
-                    "No hay problema por el ruido"
-                )
+            FlowRow(horizontalArrangement = Arrangement.spacedBy(10.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                reglas.forEach { regla ->
+                    val seleccionada = seleccionadasReglas.contains(regla)
+                    Chip(
+                        text = regla,
+                        isSelected = seleccionada,
+                        onClick = {
+                            if (seleccionada) seleccionadasReglas.remove(regla)
+                            else seleccionadasReglas.add(regla)
+                            reglasConvivencia = seleccionadasReglas.joinToString(", ")
+                        }
+                    )
                 }
+            }
 
             Spacer(modifier = Modifier.height(32.dp))
 
-
-
-            // Botón guardar
+            // 🔘 Botón guardar
             Button(
-                onClick = { /* guardar cambios */ },
+                onClick = {
+                    // TODO: Implementar acción guardar (actualizar datos en backend)
+                    onBackClick()
+                },
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(55.dp),
@@ -682,12 +581,38 @@ fun PerfilTengoLugarScreenEditar(
                 Text("GUARDAR", style = MaterialTheme.typography.displaySmall)
             }
 
-            Spacer(modifier = Modifier.height(50.dp))
+            Spacer(modifier = Modifier.height(80.dp))
         }
     }
 }
 
-
+@Composable
+fun Chip(
+    text: String,
+    isSelected: Boolean = false,
+    onClick: () -> Unit = {}
+) {
+    Box(
+        modifier = Modifier
+            .clip(RoundedCornerShape(50))
+            .border(
+                width = 2.dp,
+                color = if (isSelected) MaterialTheme.colorScheme.primary else Color.LightGray,
+                shape = RoundedCornerShape(50)
+            )
+            .background(
+                if (isSelected) MaterialTheme.colorScheme.primary.copy(alpha = 0.15f) else Color.White
+            )
+            .clickable { onClick() }
+            .padding(horizontal = 14.dp, vertical = 8.dp)
+    ) {
+        Text(
+            text = text,
+            style = MaterialTheme.typography.bodyMedium,
+            color = if (isSelected) MaterialTheme.colorScheme.primary else Color.Black
+        )
+    }
+}
 
 @Composable
 fun ResidenciaPhotosGrid(

@@ -17,7 +17,7 @@ import com.example.approomiematchu.ui.DescriptionTengoCasaScreen
 import com.example.approomiematchu.ui.HomeScreen
 import com.example.approomiematchu.ui.authentication.*
 import com.example.approomiematchu.ui.LandingScreen
-import com.example.approomiematchu.ui.PerfilScreenBuscoLugar
+import com.example.approomiematchu.ui.PerfilBuscoLugarScreen
 import com.example.approomiematchu.ui.PerfilTengoLugarScreen
 import com.example.approomiematchu.ui.ProfileScreen
 import com.example.approomiematchu.ui.home.HomeViewModel
@@ -137,7 +137,7 @@ fun AppNavigation(modifier: Modifier = Modifier) {
             val userProfile by homeViewModel.userProfile.collectAsState()
             val userData by homeViewModel.userData.collectAsState()
 
-            PerfilScreenBuscoLugar(
+            PerfilBuscoLugarScreen(
                 onBackClick = { NavigationUtils.goBack(navController) },
                 userProfile = userProfile,
                 userData = userData
