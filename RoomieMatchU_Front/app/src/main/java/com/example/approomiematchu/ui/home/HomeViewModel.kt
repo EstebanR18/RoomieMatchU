@@ -1,9 +1,11 @@
 package com.example.approomiematchu.ui.home
 
+import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.approomiematchu.data.remote.RetrofitClient
 import com.example.approomiematchu.data.remote.dto.PerfilResponse
+import com.example.approomiematchu.data.remote.dto.UserResponse
 import com.example.approomiematchu.data.repository.UserRepository
 import com.example.approomiematchu.ui.profileconfig.presentation.TipoPerfil
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -21,11 +23,25 @@ class HomeViewModel : ViewModel() {
     private val _userProfile = MutableStateFlow<PerfilResponse?>(null)
     val userProfile: StateFlow<PerfilResponse?> = _userProfile.asStateFlow()
 
+    // Agregar StateFlow para los datos del usuario
+    private val _userData = MutableStateFlow<UserResponse?>(null)
+    val userData: StateFlow<UserResponse?> = _userData.asStateFlow()
+
     fun loadUserProfile(userId: Long) {
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(isLoading = true)
 
             try {
+                // Obtener datos del usuario (nombre real, email, etc.)
+                val userDataResult = userRepository.getUserById(userId)
+                userDataResult.onSuccess { userData ->
+                    _userData.value = userData
+                }.onFailure { error ->
+                    // No detenemos el flujo si falla obtener datos del usuario, solo log
+                    Log.e("HomeViewModel", "Error obteniendo datos del usuario: ${error.message}")
+                }
+
+                // Obtener perfil del usuario
                 val perfilResult = userRepository.obtenerPerfilUsuario(userId)
                 perfilResult.onSuccess { perfil ->
                     _userProfile.value = perfil

@@ -8,6 +8,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AddAPhoto
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.outlined.AddCircleOutline
 import androidx.compose.material3.*
@@ -24,15 +25,65 @@ import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
 import com.example.approomiematchu.R
 import com.example.approomiematchu.data.remote.dto.PerfilResponse
+import com.example.approomiematchu.data.remote.dto.UserResponse
 import com.example.approomiematchu.ui.theme.RoomieMatchUTheme
+import java.text.SimpleDateFormat
+import java.util.Calendar
+import java.util.Locale
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun PerfilTengoLugarScreen(
     onBackClick: () -> Unit,
-    userProfile: PerfilResponse? = null
-){
+    userProfile: PerfilResponse? = null,
+    userData: UserResponse? = null
+) {
     val scrollState = rememberScrollState()
+
+    // Función para calcular la edad
+    fun calcularEdad(fechaNacimiento: String): Int? {
+        return try {
+            val formato = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
+            val fechaNac = formato.parse(fechaNacimiento)
+            val hoy = Calendar.getInstance()
+            val nacimiento = Calendar.getInstance().apply { time = fechaNac }
+
+            var edad = hoy.get(Calendar.YEAR) - nacimiento.get(Calendar.YEAR)
+
+            // Ajustar si aún no ha pasado el cumpleaños este año
+            if (hoy.get(Calendar.DAY_OF_YEAR) < nacimiento.get(Calendar.DAY_OF_YEAR)) {
+                edad--
+            }
+
+            edad
+        } catch (e: Exception) {
+            null // Retornar null si hay error en el parsing
+        }
+    }
+
+    // Calcular nombre y edad
+    val nombreConEdad = remember(userProfile, userData) {
+        // Usar el nombre real de userData si está disponible
+        val nombreReal = userData?.nombreCompleto ?: "Nombre Usuario"
+
+        userProfile?.fechaNacimiento?.let { fechaNac ->
+            val edad = calcularEdad(fechaNac)
+            if (edad != null) {
+                "$nombreReal, $edad"
+            } else {
+                nombreReal
+            }
+        } ?: nombreReal
+    }
+
+    // Extraer datos del perfil - sin valores por defecto
+    val descripcion = userProfile?.descripcionLibre
+    val barrio = userProfile?.barrio
+    val precio = userProfile?.arriendo?.let { "$${it.toInt()}" }
+    val habitaciones = userProfile?.cantidadHabitaciones?.toString()
+    val maxRoomies = userProfile?.maxRoomies?.toString()
+    val serviciosIncluidos = userProfile?.serviciosIncluidos
+    val reglasConvivencia = userProfile?.reglasConvivencia
 
     Column(
         modifier = Modifier
@@ -40,7 +91,7 @@ fun PerfilTengoLugarScreen(
             .background(Color(0xFFD2D0D0))
             .padding(24.dp)
     ) {
-        // Encabezado fijo (NO scrolleable)
+        // 🔹 Encabezado fijo (NO scrolleable)
         Box(
             modifier = Modifier
                 .fillMaxWidth()
@@ -87,7 +138,6 @@ fun PerfilTengoLugarScreen(
             }
         }
 
-
         Spacer(modifier = Modifier.height(8.dp))
 
         // Columna interna con scroll (contenido)
@@ -104,50 +154,72 @@ fun PerfilTengoLugarScreen(
                     .height(180.dp),
                 contentAlignment = Alignment.Center
             ) {
-                Image(
-                    painter = painterResource(id = R.drawable.imagen2),
-                    contentDescription = "Foto de perfil",
-                    modifier = Modifier
-                        .size(160.dp)
-                        .clip(CircleShape)
-                        .border(
-                            width = 5.dp,
-                            color = MaterialTheme.colorScheme.primary,
-                            shape = CircleShape
+                // Usar foto real si está disponible
+                if (!userProfile?.fotoPerfil.isNullOrEmpty()) {
+                    AsyncImage(
+                        model = userProfile?.fotoPerfil,
+                        contentDescription = "Foto de perfil",
+                        modifier = Modifier
+                            .size(160.dp)
+                            .clip(CircleShape)
+                            .border(
+                                width = 5.dp,
+                                color = MaterialTheme.colorScheme.primary,
+                                shape = CircleShape
+                            )
+                            .clickable { },
+                        contentScale = ContentScale.Crop
+                    )
+                } else {
+                    // No mostrar imagen por defecto si no hay foto
+                    Box(
+                        modifier = Modifier
+                            .size(160.dp)
+                            .clip(CircleShape)
+                            .border(
+                                width = 5.dp,
+                                color = MaterialTheme.colorScheme.primary,
+                                shape = CircleShape
+                            )
+                            .background(Color.LightGray),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Person,
+                            contentDescription = "Sin foto",
+                            tint = Color.Gray,
+                            modifier = Modifier.size(60.dp)
                         )
-                        .clickable { },
-                    contentScale = ContentScale.Crop
-                )
+                    }
+                }
             }
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            // Nombre
-            Text(
-                "Pablo, 20",
-                style = MaterialTheme.typography.displayLarge,
-                color = MaterialTheme.colorScheme.primary,
-                textAlign = TextAlign.Center,
-                modifier = Modifier.fillMaxWidth()
-            )
+            // Nombre con edad (solo mostrar si no está vacío)
+            if (nombreConEdad.isNotEmpty()) {
+                Text(
+                    text = nombreConEdad,
+                    style = MaterialTheme.typography.displayLarge,
+                    color = MaterialTheme.colorScheme.primary,
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier.fillMaxWidth()
+                )
+                Spacer(modifier = Modifier.height(16.dp))
+            }
 
-            Spacer(modifier = Modifier.height(16.dp))
+            // Fotos de la residencia (solo mostrar si hay datos)
+            userProfile?.fotosResidenciaUrls?.let { fotosResidencia ->
+                if (fotosResidencia.isNotEmpty()) {
+                    ResidenciaPhotosGrid(
+                        photos = fotosResidencia,
+                        onAddPhoto = { /* acción para agregar foto */ }
+                    )
+                    Spacer(modifier = Modifier.height(16.dp))
+                }
+            }
 
-            // Fotos de la residencia
-            val fotosResidencia = listOf(
-                "https://picsum.photos/200/300",
-                "https://picsum.photos/201/300"
-            )
-
-            ResidenciaPhotosGrid(
-                photos = fotosResidencia,
-                onAddPhoto = { /* acción para agregar foto */ }
-            )
-
-            Spacer(modifier = Modifier.height(16.dp))
-
-
-            // Descripción
+            // 🔹 Descripción - SIEMPRE mostrar el contenedor (vacío si no hay datos)
             Card(
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(16.dp),
@@ -164,7 +236,7 @@ fun PerfilTengoLugarScreen(
                     Spacer(modifier = Modifier.height(8.dp))
 
                     Text(
-                        text = "Soy Pablo y tengo apartamento para compartir en Chapinero amoblado.",
+                        text = descripcion ?: "Agrega una breve descripción del lugar",
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onBackground
                     )
@@ -173,96 +245,112 @@ fun PerfilTengoLugarScreen(
 
             Spacer(modifier = Modifier.height(24.dp))
 
-            // Chapinero
-            Text(
-                "Chapinero",
-                style = MaterialTheme.typography.headlineLarge,
-                color = MaterialTheme.colorScheme.primary
-            )
-
-            Spacer(modifier = Modifier.height(20.dp))
-
-            // Estilo de vida
-            Text(
-                "Estilo de vida",
-                style = MaterialTheme.typography.headlineLarge,
-                color = MaterialTheme.colorScheme.primary
-            )
-            FlowRow(
-                horizontalArrangement = Arrangement.spacedBy(10.dp),
-                verticalArrangement = Arrangement.spacedBy(10.dp)
-            ) {
-                listOf(
-                    "No fumo",
-                    "Estoy dispuesto a vivir con mascotas",
-                    "Sin alergias",
-                    "Tengo mascotas"
-                ).forEach { Chip(it) }
+            // Barrio (solo mostrar si existe)
+            barrio?.let {
+                Text(
+                    text = barrio,
+                    style = MaterialTheme.typography.headlineLarge,
+                    color = MaterialTheme.colorScheme.primary
+                )
+                Spacer(modifier = Modifier.height(20.dp))
             }
 
-            Spacer(modifier = Modifier.height(20.dp))
+            // Estilo de vida (solo mostrar si hay datos)
+            val habitosChips = mutableListOf<String>()
+            userProfile?.fuma?.let { if (!it) habitosChips.add("No fumo") }
+            userProfile?.mascota?.let { if (it) habitosChips.add("Tengo mascotas") else habitosChips.add("Estoy dispuesto a vivir con mascotas") }
+            userProfile?.alergico?.let { if (!it) habitosChips.add("Sin alergias") }
 
-            // Precio
-            Text(
-                "Precio dispuesto a pagar",
-                style = MaterialTheme.typography.headlineLarge,
-                color = MaterialTheme.colorScheme.primary
-            )
-            Chip("$600.000")
-
-            Spacer(modifier = Modifier.height(20.dp))
-
-            // Personas
-            Text(
-                "Número de personas con las que estarías dispuesto a vivir",
-                style = MaterialTheme.typography.headlineLarge,
-                color = MaterialTheme.colorScheme.primary
-            )
-            Chip("3")
-
-            Spacer(modifier = Modifier.height(20.dp))
-
-            // Servicios
-            Text(
-                "Servicios indispensables que buscas",
-                style = MaterialTheme.typography.headlineLarge,
-                color = MaterialTheme.colorScheme.primary
-            )
-            FlowRow(
-                horizontalArrangement = Arrangement.spacedBy(10.dp),
-                verticalArrangement = Arrangement.spacedBy(10.dp)
-            ) {
-                listOf(
-                    "Internet", "Amoblado", "Lavadora",
-                    "Baño Privado", "Agua Caliente", "Secadora"
-                ).forEach { Chip(it) }
+            if (habitosChips.isNotEmpty()) {
+                Text(
+                    text = "Estilo de vida",
+                    style = MaterialTheme.typography.headlineLarge,
+                    color = MaterialTheme.colorScheme.primary
+                )
+                FlowRow(
+                    horizontalArrangement = Arrangement.spacedBy(10.dp),
+                    verticalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    habitosChips.forEach { Chip(it) }
+                }
+                Spacer(modifier = Modifier.height(20.dp))
             }
 
-            Spacer(modifier = Modifier.height(20.dp))
+            // Precio (solo mostrar si existe)
+            precio?.let {
+                Text(
+                    text = "Precio del arrendamiento",
+                    style = MaterialTheme.typography.headlineLarge,
+                    color = MaterialTheme.colorScheme.primary
+                )
+                Chip(it)
+                Spacer(modifier = Modifier.height(20.dp))
+            }
 
-            // Tipo habitación
-            Text(
-                "Tipo de habitación",
-                style = MaterialTheme.typography.headlineLarge,
-                color = MaterialTheme.colorScheme.primary
-            )
-            Chip("Individual")
+            // Habitaciones disponibles (solo mostrar si existe)
+            habitaciones?.let {
+                Text(
+                    text = "Habitaciones disponibles",
+                    style = MaterialTheme.typography.headlineLarge,
+                    color = MaterialTheme.colorScheme.primary
+                )
+                Chip(it)
+                Spacer(modifier = Modifier.height(20.dp))
+            }
 
-            Spacer(modifier = Modifier.height(20.dp))
+            // Máximo de roomies (solo mostrar si existe)
+            maxRoomies?.let {
+                Text(
+                    text = "Máximo de roomies",
+                    style = MaterialTheme.typography.headlineLarge,
+                    color = MaterialTheme.colorScheme.primary
+                )
+                Chip(it)
+                Spacer(modifier = Modifier.height(20.dp))
+            }
 
-            // Fecha mudanza
-            Text(
-                "Fecha en la que necesitas mudarte",
-                style = MaterialTheme.typography.headlineLarge,
-                color = MaterialTheme.colorScheme.primary
-            )
-            Chip("Inmediato")
+            // Servicios incluidos (solo mostrar si hay datos)
+            serviciosIncluidos?.let { serviciosStr ->
+                val servicios = serviciosStr.split(",").map { it.trim() }.filter { it.isNotEmpty() }
+                if (servicios.isNotEmpty()) {
+                    Text(
+                        text = "Servicios incluidos en el arriendo",
+                        style = MaterialTheme.typography.headlineLarge,
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                    FlowRow(
+                        horizontalArrangement = Arrangement.spacedBy(10.dp),
+                        verticalArrangement = Arrangement.spacedBy(10.dp)
+                    ) {
+                        servicios.forEach { Chip(it) }
+                    }
+                    Spacer(modifier = Modifier.height(20.dp))
+                }
+            }
+
+            // Reglas de convivencia (solo mostrar si hay datos)
+            reglasConvivencia?.let { reglasStr ->
+                val reglas = reglasStr.split(",").map { it.trim() }.filter { it.isNotEmpty() }
+                if (reglas.isNotEmpty()) {
+                    Text(
+                        text = "Reglas de convivencia",
+                        style = MaterialTheme.typography.headlineLarge,
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                    FlowRow(
+                        horizontalArrangement = Arrangement.spacedBy(10.dp),
+                        verticalArrangement = Arrangement.spacedBy(10.dp)
+                    ) {
+                        reglas.forEach { Chip(it) }
+                    }
+                    Spacer(modifier = Modifier.height(20.dp))
+                }
+            }
 
             Spacer(modifier = Modifier.height(100.dp)) // espacio final visible
         }
     }
 }
-
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable

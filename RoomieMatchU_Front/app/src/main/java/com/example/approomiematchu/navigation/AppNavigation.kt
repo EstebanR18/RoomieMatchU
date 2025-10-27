@@ -135,17 +135,23 @@ fun AppNavigation(modifier: Modifier = Modifier) {
         // ---------- PERFILES ----------
         composable(AppScreens.PerfilBuscoLugar.route) {
             val userProfile by homeViewModel.userProfile.collectAsState()
+            val userData by homeViewModel.userData.collectAsState()
+
             PerfilScreenBuscoLugar(
                 onBackClick = { NavigationUtils.goBack(navController) },
-                userProfile = userProfile
+                userProfile = userProfile,
+                userData = userData
             )
         }
 
         composable(AppScreens.PerfilTengoLugar.route) {
             val userProfile by homeViewModel.userProfile.collectAsState()
+            val userData by homeViewModel.userData.collectAsState()
+
             PerfilTengoLugarScreen(
                 onBackClick = { NavigationUtils.goBack(navController) },
-                userProfile = userProfile
+                userProfile = userProfile,
+                userData = userData
             )
         }
 
