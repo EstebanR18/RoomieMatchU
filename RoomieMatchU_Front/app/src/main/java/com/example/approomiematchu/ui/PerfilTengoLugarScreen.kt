@@ -1,5 +1,10 @@
 package com.example.approomiematchu.ui
 
+import android.net.Uri
+import android.util.Log
+import android.widget.Toast
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
@@ -11,22 +16,34 @@ import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.outlined.AddCircleOutline
+import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.snapshots.SnapshotStateList
 import androidx.compose.ui.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.viewModelScope
+import androidx.lifecycle.viewmodel.compose.viewModel
 import coil3.compose.AsyncImage
 import com.example.approomiematchu.R
+import com.example.approomiematchu.data.remote.RetrofitClient
 import com.example.approomiematchu.data.remote.dto.PerfilResponse
 import com.example.approomiematchu.data.remote.dto.UserResponse
+import com.example.approomiematchu.ui.home.HomeViewModel
+import com.example.approomiematchu.ui.profileconfig.presentation.PerfilCuestionarioViewModel
+import com.example.approomiematchu.ui.profileconfig.presentation.PerfilCuestionarioViewModelFactory
 import com.example.approomiematchu.ui.theme.RoomieMatchUTheme
+import com.example.approomiematchu.utils.uriToFile
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.Locale
@@ -34,16 +51,25 @@ import java.util.Locale
 @Composable
 fun PerfilTengoLugarScreen(
     onBackClick: () -> Unit,
-    userProfile: PerfilResponse? = null,
-    userData: UserResponse? = null
+    homeViewModel: HomeViewModel
 ) {
+    val userProfile by homeViewModel.userProfile.collectAsState()
+    val userData by homeViewModel.userData.collectAsState()
     var isEditing by remember { mutableStateOf(false) }
+
+    // 🔹 Forzar recarga al salir del modo edición
+    LaunchedEffect(isEditing) {
+        if (!isEditing) {
+            userData?.id?.let { homeViewModel.loadUserProfile(it) }
+        }
+    }
 
     if (isEditing) {
         PerfilEditarScreenTengoLugar(
             userProfile = userProfile,
             userData = userData,
-            onBackClick = { isEditing = false }
+            onBackClick = { isEditing = false },
+            homeViewModel = homeViewModel
         )
     } else {
         PerfilVerScreenTengoLugar(
@@ -54,6 +80,7 @@ fun PerfilTengoLugarScreen(
         )
     }
 }
+
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
@@ -76,7 +103,9 @@ fun PerfilVerScreenTengoLugar(
             var edad = hoy.get(Calendar.YEAR) - nacimiento.get(Calendar.YEAR)
             if (hoy.get(Calendar.DAY_OF_YEAR) < nacimiento.get(Calendar.DAY_OF_YEAR)) edad--
             edad
-        } catch (e: Exception) { null }
+        } catch (e: Exception) {
+            null
+        }
     }
 
     val nombreConEdad = remember(userProfile, userData) {
@@ -100,13 +129,18 @@ fun PerfilVerScreenTengoLugar(
     ) {
         // 🔹 Encabezado
         Box(
-            modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp)
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(bottom = 8.dp)
         ) {
             Icon(
                 painter = painterResource(id = R.drawable.ic_atras_screens),
                 contentDescription = "Atrás",
                 tint = MaterialTheme.colorScheme.primary,
-                modifier = Modifier.align(Alignment.CenterStart).size(28.dp).clickable { onBackClick() }
+                modifier = Modifier
+                    .align(Alignment.CenterStart)
+                    .size(28.dp)
+                    .clickable { onBackClick() }
             )
 
             Text(
@@ -121,17 +155,24 @@ fun PerfilVerScreenTengoLugar(
                 imageVector = Icons.Default.Edit,
                 contentDescription = "Editar",
                 tint = MaterialTheme.colorScheme.primary,
-                modifier = Modifier.align(Alignment.CenterEnd).size(30.dp).clickable { onEditClick() }
+                modifier = Modifier
+                    .align(Alignment.CenterEnd)
+                    .size(30.dp)
+                    .clickable { onEditClick() }
             )
         }
 
         // 🔹 Contenido
         Column(
-            modifier = Modifier.verticalScroll(scrollState).padding(bottom = 100.dp)
+            modifier = Modifier
+                .verticalScroll(scrollState)
+                .padding(bottom = 100.dp)
         ) {
             // Foto de perfil
             Row(
-                modifier = Modifier.fillMaxWidth().height(180.dp),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(180.dp),
                 horizontalArrangement = Arrangement.Center,
                 verticalAlignment = Alignment.Bottom
             ) {
@@ -208,37 +249,66 @@ fun PerfilVerScreenTengoLugar(
             Spacer(modifier = Modifier.height(24.dp))
 
             // Zona / barrio
-            Text("Zona o barrio", style = MaterialTheme.typography.headlineLarge, color = MaterialTheme.colorScheme.primary)
+            Text(
+                "Zona o barrio",
+                style = MaterialTheme.typography.headlineLarge,
+                color = MaterialTheme.colorScheme.primary
+            )
             PerfilChipRow(listOfNotNull(userProfile?.barrio ?: "No definido"))
 
             Spacer(modifier = Modifier.height(16.dp))
 
             // Precio
-            Text("Precio del arriendo", style = MaterialTheme.typography.headlineLarge, color = MaterialTheme.colorScheme.primary)
-            PerfilChipRow(listOfNotNull(userProfile?.arriendo?.let { "$${"%,.0f".format(it)}" } ?: "No definido"))
+            Text(
+                "Precio del arriendo",
+                style = MaterialTheme.typography.headlineLarge,
+                color = MaterialTheme.colorScheme.primary
+            )
+            PerfilChipRow(listOfNotNull(userProfile?.arriendo?.let { "$${"%,.0f".format(it)}" }
+                ?: "No definido"))
 
             Spacer(modifier = Modifier.height(16.dp))
 
             // Habitaciones
-            Text("Habitaciones disponibles", style = MaterialTheme.typography.headlineLarge, color = MaterialTheme.colorScheme.primary)
-            PerfilChipRow(listOfNotNull(userProfile?.cantidadHabitaciones?.toString() ?: "No definido"))
+            Text(
+                "Habitaciones disponibles",
+                style = MaterialTheme.typography.headlineLarge,
+                color = MaterialTheme.colorScheme.primary
+            )
+            PerfilChipRow(
+                listOfNotNull(
+                    userProfile?.cantidadHabitaciones?.toString() ?: "No definido"
+                )
+            )
 
             Spacer(modifier = Modifier.height(16.dp))
 
             // Máximo de roomies
-            Text("Máximo de roomies", style = MaterialTheme.typography.headlineLarge, color = MaterialTheme.colorScheme.primary)
+            Text(
+                "Máximo de roomies",
+                style = MaterialTheme.typography.headlineLarge,
+                color = MaterialTheme.colorScheme.primary
+            )
             PerfilChipRow(listOfNotNull(userProfile?.maxRoomies?.toString() ?: "No definido"))
 
             Spacer(modifier = Modifier.height(16.dp))
 
             // Servicios incluidos
-            Text("Servicios incluidos en el arriendo", style = MaterialTheme.typography.headlineLarge, color = MaterialTheme.colorScheme.primary)
+            Text(
+                "Servicios incluidos en el arriendo",
+                style = MaterialTheme.typography.headlineLarge,
+                color = MaterialTheme.colorScheme.primary
+            )
             PerfilChipRow(serviciosIncluidos.ifEmpty { listOf("No especificado") })
 
             Spacer(modifier = Modifier.height(16.dp))
 
             // Reglas convivencia
-            Text("Reglas de convivencia", style = MaterialTheme.typography.headlineLarge, color = MaterialTheme.colorScheme.primary)
+            Text(
+                "Reglas de convivencia",
+                style = MaterialTheme.typography.headlineLarge,
+                color = MaterialTheme.colorScheme.primary
+            )
             PerfilChipRow(reglasConvivencia.ifEmpty { listOf("No especificado") })
 
             Spacer(modifier = Modifier.height(50.dp))
@@ -251,11 +321,85 @@ fun PerfilVerScreenTengoLugar(
 fun PerfilEditarScreenTengoLugar(
     userProfile: PerfilResponse? = null,
     userData: UserResponse? = null,
-    onBackClick: () -> Unit
+    onBackClick: () -> Unit,
+    viewModel: PerfilCuestionarioViewModel = viewModel(
+        factory = PerfilCuestionarioViewModelFactory(RetrofitClient.instance)
+    ),
+    homeViewModel: HomeViewModel
 ) {
+    val context = LocalContext.current
+    var isSaving by remember { mutableStateOf(false) }
     val scrollState = rememberScrollState()
 
-    // 📆 Calcular edad
+    // Estados para manejar fotos
+    val fotosResidencia = remember {
+        mutableStateListOf<String>().apply {
+            addAll(userProfile?.fotosResidenciaUrls ?: emptyList())
+        }
+    }
+
+    // Lista para trackear fotos eliminadas
+    val fotosEliminadas = remember { mutableStateListOf<String>() }
+
+    // Estado para la nueva foto de perfil
+    var nuevaFotoPerfilUri by remember { mutableStateOf<Uri?>(null) }
+    var fotoPerfilActualizada by remember { mutableStateOf(false) }
+
+    // Launcher para foto de perfil
+    val launcherFotoPerfil = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.GetContent()
+    ) { uri: Uri? ->
+        uri?.let {
+            nuevaFotoPerfilUri = it
+            fotoPerfilActualizada = true
+            viewModel.actualizarFotoPerfilLocal(it.toString())
+        }
+    }
+
+    // Launcher para fotos de residencia
+    val launcherFotosResidencia = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.GetContent()
+    ) { uri: Uri? ->
+        uri?.let {
+            if (fotosResidencia.size < 6) {
+                fotosResidencia.add(it.toString())
+                Log.d("Fotos", "✅ Foto agregada. Total: ${fotosResidencia.size}")
+            } else {
+                Toast.makeText(context, "Máximo 6 fotos permitidas", Toast.LENGTH_SHORT).show()
+            }
+        }
+    }
+
+    // Función mejorada para eliminar fotos
+    val onDeletePhoto = { index: Int ->
+        Log.d("Fotos", "🗑️ Intentando eliminar foto en índice: $index, Total fotos: ${fotosResidencia.size}")
+
+        if (index in fotosResidencia.indices) {
+            if (fotosResidencia.size > 1) {
+                val fotoEliminada = fotosResidencia[index]
+                Log.d("Fotos", "📸 Foto a eliminar: ${fotoEliminada.take(50)}...")
+
+                // Si es una foto existente (URL), agregar a la lista de eliminadas
+                if (fotoEliminada.startsWith("http")) {
+                    fotosEliminadas.add(fotoEliminada)
+                    Log.d("Fotos", "📝 Agregada a fotosEliminadas. Total: ${fotosEliminadas.size}")
+                }
+
+                // Eliminar de la lista visual
+                fotosResidencia.removeAt(index)
+                Log.d("Fotos", "✅ Foto eliminada. Nuevo total: ${fotosResidencia.size}")
+
+                Toast.makeText(context, "Foto eliminada", Toast.LENGTH_SHORT).show()
+            } else {
+                Toast.makeText(context, "Debe haber al menos una foto", Toast.LENGTH_SHORT).show()
+            }
+        } else {
+            Log.e("Fotos", "❌ Índice fuera de rango: $index, tamaño: ${fotosResidencia.size}")
+            Toast.makeText(context, "Error: índice no válido", Toast.LENGTH_SHORT).show()
+        }
+    }
+
+    // Calcular edad
     fun calcularEdad(fechaNacimiento: String?): Int? {
         return try {
             if (fechaNacimiento == null) return null
@@ -266,23 +410,24 @@ fun PerfilEditarScreenTengoLugar(
             var edad = hoy.get(Calendar.YEAR) - nacimiento.get(Calendar.YEAR)
             if (hoy.get(Calendar.DAY_OF_YEAR) < nacimiento.get(Calendar.DAY_OF_YEAR)) edad--
             edad
-        } catch (e: Exception) { null }
+        } catch (e: Exception) {
+            null
+        }
     }
 
-    // 🧩 Estados editables
+    // Estados editables
     var descripcion by remember { mutableStateOf(userProfile?.descripcionLibre ?: "") }
     var arriendo by remember { mutableStateOf(userProfile?.arriendo?.toString() ?: "") }
-    var cantidadHabitaciones by remember { mutableStateOf(userProfile?.cantidadHabitaciones?.toString() ?: "") }
+    var cantidadHabitaciones by remember {
+        mutableStateOf(
+            userProfile?.cantidadHabitaciones?.toString() ?: ""
+        )
+    }
     var maxRoomies by remember { mutableStateOf(userProfile?.maxRoomies?.toString() ?: "") }
 
     var barrio by remember { mutableStateOf(userProfile?.barrio ?: "") }
     var serviciosIncluidos by remember { mutableStateOf(userProfile?.serviciosIncluidos ?: "") }
     var reglasConvivencia by remember { mutableStateOf(userProfile?.reglasConvivencia ?: "") }
-
-    // Fotos residencia
-    val fotosResidencia = remember { mutableStateListOf<String>().apply {
-        addAll(userProfile?.fotosResidenciaUrls ?: emptyList())
-    }}
 
     // Nombre con edad
     val nombreConEdad = remember(userProfile, userData) {
@@ -309,12 +454,17 @@ fun PerfilEditarScreenTengoLugar(
             .padding(24.dp)
     ) {
         // 🔹 Encabezado
-        Box(modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp)) {
+        Box(modifier = Modifier
+            .fillMaxWidth()
+            .padding(bottom = 8.dp)) {
             Icon(
                 painter = painterResource(id = R.drawable.ic_atras_screens),
                 contentDescription = "Atrás",
                 tint = MaterialTheme.colorScheme.primary,
-                modifier = Modifier.align(Alignment.CenterStart).size(28.dp).clickable { onBackClick() }
+                modifier = Modifier
+                    .align(Alignment.CenterStart)
+                    .size(28.dp)
+                    .clickable { onBackClick() }
             )
 
             Text(
@@ -328,16 +478,19 @@ fun PerfilEditarScreenTengoLugar(
 
         // 🔹 Contenido con scroll
         Column(
-            modifier = Modifier.verticalScroll(scrollState).padding(bottom = 100.dp)
+            modifier = Modifier
+                .verticalScroll(scrollState)
+                .padding(bottom = 100.dp)
         ) {
             // 📷 Foto de perfil
             Box(
                 modifier = Modifier.fillMaxWidth(),
                 contentAlignment = Alignment.Center
             ) {
-                if (!userProfile?.fotoPerfil.isNullOrEmpty()) {
+                val fotoActual = nuevaFotoPerfilUri?.toString() ?: userProfile?.fotoPerfil
+                if (!fotoActual.isNullOrEmpty()) {
                     AsyncImage(
-                        model = userProfile?.fotoPerfil,
+                        model = fotoActual,
                         contentDescription = "Foto de perfil",
                         modifier = Modifier
                             .size(160.dp)
@@ -365,7 +518,7 @@ fun PerfilEditarScreenTengoLugar(
                         .align(Alignment.BottomEnd)
                         .offset(x = (-8).dp, y = (-8).dp)
                         .size(36.dp)
-                        .clickable { /* TODO cambiar foto */ }
+                        .clickable { launcherFotoPerfil.launch("image/*") }
                 )
             }
 
@@ -382,17 +535,16 @@ fun PerfilEditarScreenTengoLugar(
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            // 📸 Fotos residencia editables
+            // Grid editable
             ResidenciaPhotosGridEditar(
                 photos = fotosResidencia,
-                onAddPhoto = { fotosResidencia.add("https://picsum.photos/200/300?${fotosResidencia.size}") },
-                onEditPhoto = { /* TODO editar */ },
-                onDeletePhoto = { index -> fotosResidencia.removeAt(index) }
+                onAddPhoto = { launcherFotosResidencia.launch("image/*") },
+                onDeletePhoto = onDeletePhoto
             )
 
             Spacer(modifier = Modifier.height(24.dp))
 
-            // 🧾 Descripción
+            // Descripción
             Card(
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(16.dp),
@@ -427,8 +579,12 @@ fun PerfilEditarScreenTengoLugar(
 
             Spacer(modifier = Modifier.height(24.dp))
 
-            // 🏙️ Zona / barrio
-            Text("Zona o barrio", style = MaterialTheme.typography.headlineLarge, color = MaterialTheme.colorScheme.primary)
+            // Zona / barrio
+            Text(
+                "Zona o barrio",
+                style = MaterialTheme.typography.headlineLarge,
+                color = MaterialTheme.colorScheme.primary
+            )
             Spacer(modifier = Modifier.height(8.dp))
             FlowRow(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                 zonas.forEach { zona ->
@@ -443,7 +599,7 @@ fun PerfilEditarScreenTengoLugar(
 
             Spacer(modifier = Modifier.height(24.dp))
 
-            /* 💰 Precio del arriendo */
+            /* Precio del arriendo */
             Text(
                 "Precio del arriendo",
                 style = MaterialTheme.typography.headlineLarge,
@@ -466,7 +622,7 @@ fun PerfilEditarScreenTengoLugar(
 
             Spacer(modifier = Modifier.height(24.dp))
 
-            /* 🏠 Habitaciones disponibles */
+            /* Habitaciones disponibles */
             Text(
                 "Habitaciones disponibles",
                 style = MaterialTheme.typography.headlineLarge,
@@ -489,7 +645,7 @@ fun PerfilEditarScreenTengoLugar(
 
             Spacer(modifier = Modifier.height(24.dp))
 
-            /* 👥 Máximo de roomies */
+            /* Máximo de roomies */
             Text(
                 "Máximo de roomies",
                 style = MaterialTheme.typography.headlineLarge,
@@ -512,18 +668,28 @@ fun PerfilEditarScreenTengoLugar(
 
             Spacer(modifier = Modifier.height(24.dp))
 
-            // 🧾 Servicios incluidos
-            Text("Servicios incluidos en el arriendo", style = MaterialTheme.typography.headlineLarge, color = MaterialTheme.colorScheme.primary)
+            //  Servicios incluidos
+            Text(
+                "Servicios incluidos en el arriendo",
+                style = MaterialTheme.typography.headlineLarge,
+                color = MaterialTheme.colorScheme.primary
+            )
             val servicios = listOf(
                 "Internet", "Amoblado", "Lavadora", "Baño Privado", "Televisión", "Secadora",
                 "Agua Caliente", "Cocina equipada", "Nevera compartida", "Parqueadero",
                 "Acceso inclusivo", "Espacios comunes"
             )
-            val seleccionadosServicios = remember { mutableStateListOf<String>().apply {
-                addAll(userProfile?.serviciosIncluidos?.split(",")?.map { it.trim() } ?: emptyList())
-            }}
+            val seleccionadosServicios = remember {
+                mutableStateListOf<String>().apply {
+                    addAll(userProfile?.serviciosIncluidos?.split(",")?.map { it.trim() }
+                        ?: emptyList())
+                }
+            }
 
-            FlowRow(horizontalArrangement = Arrangement.spacedBy(10.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            FlowRow(
+                horizontalArrangement = Arrangement.spacedBy(10.dp),
+                verticalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
                 servicios.forEach { servicio ->
                     val seleccionado = seleccionadosServicios.contains(servicio)
                     Chip(
@@ -540,17 +706,33 @@ fun PerfilEditarScreenTengoLugar(
 
             Spacer(modifier = Modifier.height(24.dp))
 
-            // 📋 Reglas de convivencia
-            Text("Reglas de convivencia", style = MaterialTheme.typography.headlineLarge, color = MaterialTheme.colorScheme.primary)
-            val reglas = listOf(
-                "Se aceptan visitas", "Hay horarios", "Se permiten fiestas", "Se aceptan mascotas",
-                "Cada uno cocina", "Cada uno hace limpieza", "No hay problema por el ruido"
+            // Reglas de convivencia
+            Text(
+                "Reglas de convivencia",
+                style = MaterialTheme.typography.headlineLarge,
+                color = MaterialTheme.colorScheme.primary
             )
-            val seleccionadasReglas = remember { mutableStateListOf<String>().apply {
-                addAll(userProfile?.reglasConvivencia?.split(",")?.map { it.trim() } ?: emptyList())
-            }}
+            val reglas = listOf(
+                "Se aceptan visitas",
+                "Hay horarios",
+                "Se permiten fiestas",
+                "Se aceptan mascotas",
+                "Cada uno cocina",
+                "Cada uno hace limpieza",
+                "No hay problema por el ruido",
+                "Visitas limitadas"
+            )
+            val seleccionadasReglas = remember {
+                mutableStateListOf<String>().apply {
+                    addAll(userProfile?.reglasConvivencia?.split(",")?.map { it.trim() }
+                        ?: emptyList())
+                }
+            }
 
-            FlowRow(horizontalArrangement = Arrangement.spacedBy(10.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            FlowRow(
+                horizontalArrangement = Arrangement.spacedBy(10.dp),
+                verticalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
                 reglas.forEach { regla ->
                     val seleccionada = seleccionadasReglas.contains(regla)
                     Chip(
@@ -570,15 +752,92 @@ fun PerfilEditarScreenTengoLugar(
             // 🔘 Botón guardar
             Button(
                 onClick = {
-                    // TODO: Implementar acción guardar (actualizar datos en backend)
-                    onBackClick()
+                    if (userData == null) {
+                        Toast.makeText(context, "No se pudo obtener la información del usuario", Toast.LENGTH_SHORT).show()
+                        return@Button
+                    }
+
+                    isSaving = true
+                    val userId = userData.id ?: 0
+                    viewModel.setUserId(userId)
+                    viewModel.actualizarArriendo(arriendo.toDoubleOrNull())
+                    viewModel.actualizarCantidadHabitaciones(cantidadHabitaciones.toIntOrNull() ?: 0)
+                    viewModel.actualizarMaxRoomies(maxRoomies.toIntOrNull() ?: 1)
+                    viewModel.actualizarBarrio(barrio)
+                    viewModel.actualizarDescripcionLibre(descripcion)
+                    viewModel.actualizarReglasConvivencia(reglasConvivencia)
+                    viewModel.actualizarServiciosIncluidos(serviciosIncluidos)
+
+                    viewModel.viewModelScope.launch {
+                        try {
+                            // 1️⃣ Eliminar fotos marcadas
+                            if (fotosEliminadas.isNotEmpty()) {
+                                viewModel.eliminarFotosResidencia(
+                                    urls = fotosEliminadas,
+                                    onSuccess = { fotosEliminadas.clear() },
+                                    onError = { msg -> Log.e("PerfilEditar", msg) }
+                                )
+                            }
+
+                            // 2️⃣ Subir nueva foto de perfil
+                            if (fotoPerfilActualizada && nuevaFotoPerfilUri != null) {
+                                viewModel.subirFotoPerfilAlFinal(
+                                    context = context,
+                                    onSuccess = { url ->
+                                        viewModel.actualizarFotoPerfil(url)
+                                    },
+                                    onError = { msg -> Log.e("PerfilEditar", msg) }
+                                )
+                            }
+
+                            // 3️⃣ Subir fotos de residencia nuevas
+                            val fotosNuevas = fotosResidencia.filter { it.startsWith("content://") }
+                            val nuevosArchivos = fotosNuevas.mapNotNull { uriToFile(context, it) }
+                            if (nuevosArchivos.isNotEmpty()) {
+                                viewModel.subirFotosResidencia(
+                                    files = nuevosArchivos,
+                                    onSuccess = { urls -> Log.d("PerfilEditar", "Fotos subidas: $urls") },
+                                    onError = { msg -> Log.e("PerfilEditar", msg) }
+                                )
+                            }
+
+                            // 4️⃣ Actualizar perfil
+                            viewModel.editarPerfilTengo(
+                                userProfile = userProfile,
+                                context = context,
+                                fechaNacimiento = userProfile?.fechaNacimiento,
+                                onSuccess = {
+                                    // 5️⃣ Recargar perfil en HomeViewModel
+                                    userData.id?.let { homeViewModel.loadUserProfile(it) }
+
+                                    // 6️⃣ Cerrar editor
+                                    isSaving = false
+                                    onBackClick()
+                                    Toast.makeText(context, "Perfil actualizado correctamente", Toast.LENGTH_SHORT).show()
+                                },
+                                onError = { msg ->
+                                    isSaving = false
+                                    Toast.makeText(context, "Error al actualizar: $msg", Toast.LENGTH_LONG).show()
+                                }
+                            )
+
+                        } catch (e: Exception) {
+                            isSaving = false
+                            Toast.makeText(context, "Error inesperado: ${e.message}", Toast.LENGTH_LONG).show()
+                            Log.e("PerfilEditar", "Stack trace: ${e.stackTraceToString()}")
+                        }
+                    }
                 },
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(55.dp),
                 shape = RoundedCornerShape(50)
             ) {
-                Text("GUARDAR", style = MaterialTheme.typography.displaySmall)
+                if (isSaving) {
+                    CircularProgressIndicator(color = Color.White, strokeWidth = 2.dp)
+                } else {
+                    Text("GUARDAR", style = MaterialTheme.typography.displaySmall)
+                }
             }
 
             Spacer(modifier = Modifier.height(80.dp))
@@ -675,73 +934,70 @@ fun ResidenciaPhotosGrid(
 
 @Composable
 fun ResidenciaPhotosGridEditar(
-    photos: List<String>,
+    photos: SnapshotStateList<String>,
     onAddPhoto: () -> Unit,
-    onEditPhoto: (Int) -> Unit,
     onDeletePhoto: (Int) -> Unit
 ) {
+    val context = LocalContext.current
     val colors = MaterialTheme.colorScheme
-    val photoCount = photos.size
-    val totalSlots = if (photoCount < 6) photoCount + 1 else 6
-    val rows = if (photoCount <= 1) 1 else totalSlots / 3 + if (totalSlots % 3 != 0) 1 else 0
-    var index = 0
+    val maxPhotos = 6
+
+    // Calcular items a mostrar (fotos existentes + botón agregar si hay espacio)
+    val totalItems = if (photos.size < maxPhotos) photos.size + 1 else photos.size
+
+    // Dividir en filas de 3 columnas
+    val rows = (totalItems + 2) / 3 // Redondeo hacia arriba
 
     Column(
         verticalArrangement = Arrangement.spacedBy(8.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
         modifier = Modifier.fillMaxWidth()
     ) {
-        repeat(rows) {
+        var currentIndex = 0
+
+        repeat(rows) { rowIndex ->
             Row(
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                for (i in 0 until 3) {
-                    if (index < totalSlots) {
-                        if (index < photoCount) {
+                for (colIndex in 0 until 3) {
+                    if (currentIndex < totalItems) {
+                        // Determinar qué mostrar en esta posición
+                        if (currentIndex < photos.size) {
+                            // 📸 Mostrar foto existente
+                            val photoIndex = currentIndex // Guardar el índice REAL
                             Box(
                                 modifier = Modifier
                                     .size(100.dp, 140.dp)
-                                    .clip(RoundedCornerShape(12.dp))
-                                    .border(2.dp, colors.primary, RoundedCornerShape(12.dp)),
-                                contentAlignment = Alignment.Center
                             ) {
                                 AsyncImage(
-                                    model = photos[index],
-                                    contentDescription = "Foto residencia",
+                                    model = photos[photoIndex],
+                                    contentDescription = "Foto residencia $photoIndex",
                                     modifier = Modifier
-                                        .fillMaxSize()
-                                        .clip(RoundedCornerShape(12.dp)),
+                                        .matchParentSize()
+                                        .clip(RoundedCornerShape(12.dp))
+                                        .border(2.dp, colors.primary, RoundedCornerShape(12.dp)),
                                     contentScale = ContentScale.Crop
                                 )
 
-                                // Iconos de editar y eliminar
-                                Row(
+                                // 🗑️ Botón eliminar - usar photoIndex (índice real)
+                                Icon(
+                                    imageVector = Icons.Outlined.Delete,
+                                    contentDescription = "Eliminar foto",
+                                    tint = Color.White,
                                     modifier = Modifier
                                         .align(Alignment.TopEnd)
-                                        .padding(4.dp),
-                                    horizontalArrangement = Arrangement.spacedBy(6.dp)
-                                ) {
-                                    Icon(
-                                        imageVector = Icons.Default.Edit,
-                                        contentDescription = "Editar foto",
-                                        tint = Color.White,
-                                        modifier = Modifier
-                                            .size(20.dp)
-                                            .clickable { onEditPhoto(index) }
-                                    )
-                                    Icon(
-                                        imageVector = Icons.Default.Delete,
-                                        contentDescription = "Eliminar foto",
-                                        tint = Color.White,
-                                        modifier = Modifier
-                                            .size(20.dp)
-                                            .clickable { onDeletePhoto(index) }
-                                    )
-                                }
+                                        .padding(4.dp)
+                                        .size(20.dp)
+                                        .background(Color(0xCC000000), CircleShape)
+                                        .clickable {
+                                            onDeletePhoto(photoIndex) // Usar el índice REAL
+                                        }
+                                        .padding(4.dp)
+                                )
                             }
                         } else {
-                            // Cuadro para agregar foto
+                            // ➕ Mostrar botón agregar
                             Box(
                                 modifier = Modifier
                                     .size(100.dp, 140.dp)
@@ -758,14 +1014,13 @@ fun ResidenciaPhotosGridEditar(
                                 )
                             }
                         }
-                        index++
+                        currentIndex++
                     }
                 }
             }
         }
     }
 }
-
 
 @Composable
 fun cuTextFieldColors(

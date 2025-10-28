@@ -21,6 +21,7 @@ import com.example.approomiematchu.ui.PerfilBuscoLugarScreen
 import com.example.approomiematchu.ui.PerfilTengoLugarScreen
 import com.example.approomiematchu.ui.ProfileScreen
 import com.example.approomiematchu.ui.home.HomeViewModel
+import com.example.approomiematchu.ui.home.HomeViewModelFactory
 import com.example.approomiematchu.ui.profileconfig.*
 import com.example.approomiematchu.ui.profileconfig.presentation.PerfilCuestionarioViewModel
 import com.example.approomiematchu.ui.profileconfig.presentation.PerfilCuestionarioViewModelFactory
@@ -33,7 +34,9 @@ fun AppNavigation(modifier: Modifier = Modifier) {
         factory = PerfilCuestionarioViewModelFactory(RetrofitClient.instance)
     )
     val authViewModel: AuthViewModel = viewModel()
-    val homeViewModel: HomeViewModel = viewModel()
+    val homeViewModel: HomeViewModel = viewModel(
+        factory = HomeViewModelFactory(RetrofitClient.instance)
+    )
 
     // Observar el userId del AuthViewModel
     val userId by authViewModel.userId.collectAsState()
@@ -145,13 +148,9 @@ fun AppNavigation(modifier: Modifier = Modifier) {
         }
 
         composable(AppScreens.PerfilTengoLugar.route) {
-            val userProfile by homeViewModel.userProfile.collectAsState()
-            val userData by homeViewModel.userData.collectAsState()
-
             PerfilTengoLugarScreen(
                 onBackClick = { NavigationUtils.goBack(navController) },
-                userProfile = userProfile,
-                userData = userData
+                homeViewModel = homeViewModel
             )
         }
 

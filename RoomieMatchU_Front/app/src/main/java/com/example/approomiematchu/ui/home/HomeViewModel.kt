@@ -4,6 +4,7 @@ import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.approomiematchu.data.remote.RetrofitClient
+import com.example.approomiematchu.data.remote.api.ApiService
 import com.example.approomiematchu.data.remote.dto.PerfilResponse
 import com.example.approomiematchu.data.remote.dto.UserResponse
 import com.example.approomiematchu.data.repository.UserRepository
@@ -13,7 +14,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 
-class HomeViewModel : ViewModel() {
+class HomeViewModel(private val apiService: ApiService) : ViewModel() {
 
     private val userRepository = UserRepository(RetrofitClient.instance)
 

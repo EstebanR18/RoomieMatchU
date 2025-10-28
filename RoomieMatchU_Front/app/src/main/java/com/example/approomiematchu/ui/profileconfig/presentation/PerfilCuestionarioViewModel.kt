@@ -7,6 +7,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.approomiematchu.data.remote.api.ApiService
 import com.example.approomiematchu.data.remote.dto.PerfilBuscoLugarRequest
+import com.example.approomiematchu.data.remote.dto.PerfilResponse
 import com.example.approomiematchu.data.remote.dto.PerfilTengoLugarRequest
 import com.example.approomiematchu.utils.uriToFile
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -233,7 +234,6 @@ class PerfilCuestionarioViewModel(
         }
     }
 
-
     // -------------------------
     // SUBIDA DE FOTOS
     // -------------------------
@@ -334,5 +334,213 @@ class PerfilCuestionarioViewModel(
         }
     }
 
+    fun actualizarFotosResidencia(fotos: List<String>) {
+        _state.value = _state.value.copy(fotosResidencia = fotos)
+    }
 
+    fun editarPerfilBusco(onSuccess: () -> Unit, onError: (String) -> Unit) {
+        viewModelScope.launch {
+            try {
+                val body = PerfilBuscoLugarRequest(
+                    fotoPerfil = _state.value.fotoPerfilUrl,
+                    fechaNacimiento = _state.value.fechaNacimiento,
+                    presupuesto = _state.value.presupuesto ?: 0.0,
+                    barrio = _state.value.barrio ?: "",
+                    habitos = _state.value.habitos ?: "",
+                    tipoHabitacion = _state.value.tipoHabitacion,
+                    tiempoEstancia = _state.value.tiempoEstancia,
+                    personasConvivencia = _state.value.personasConvivencia,
+                    fechaMudanza = _state.value.fechaMudanza,
+                    serviciosDeseados = _state.value.serviciosDeseados,
+                    genero = _state.value.genero,
+                    fuma = _state.value.fuma,
+                    alergico = _state.value.alergico,
+                    detalleAlergia = _state.value.detalleAlergia,
+                    idioma = _state.value.idioma,
+                    telefono = _state.value.telefono,
+                    descripcionLibre = _state.value.descripcionLibre,
+                    mascota = _state.value.mascota
+                )
+
+                val resp = api.editarPerfilBuscoLugar(_state.value.userId, body)
+                if (resp.isSuccessful) {
+                    onSuccess()
+                } else {
+                    val bodyError = resp.errorBody()?.string()
+                    onError("Código: ${resp.code()} - ${resp.message()}\n${bodyError ?: "Sin detalles"}")
+                }
+            } catch (e: Exception) {
+                onError(e.localizedMessage ?: "Error al editar perfil")
+            }
+        }
+    }
+
+    fun editarPerfilTengo(
+        userProfile: PerfilResponse?, // nuevo parámetro
+        context: Context,
+        fechaNacimiento: String?,
+        onSuccess: () -> Unit,
+        onError: (String) -> Unit
+    ) {
+        Log.d("PerfilEditar", "🧩 Iniciando actualización del perfil TENGO_LUGAR...")
+
+        viewModelScope.launch {
+            try {
+                _state.value = _state.value.copy(isLoading = true)
+
+                // ✅ 1️⃣ Mantener foto de perfil actual si no se cambió
+                val fotoFinal = if (!_state.value.fotoPerfilUrl.isNullOrEmpty()) {
+                    _state.value.fotoPerfilUrl
+                } else {
+                    userProfile?.fotoPerfil
+                }
+
+                // ✅ 2️⃣ Subir nuevas fotos de residencia si hay locales pendientes
+                val fotosLocales = _state.value.fotosResidencia.filter { it.startsWith("content://") }
+                var fotosFinales = _state.value.fotosResidencia.filterNot { it.startsWith("content://") }.toMutableList()
+
+                if (fotosLocales.isNotEmpty()) {
+                    val archivos = fotosLocales.mapNotNull { uriStr ->
+                        uriToFile(context, uriStr)
+                    }
+                    Log.d("PerfilEditar", "📤 Subiendo ${archivos.size} nuevas fotos de residencia...")
+                    val resp = api.subirFotosResidencia(_state.value.userId, archivos.map { file ->
+                        val body = file.asRequestBody("image/*".toMediaTypeOrNull())
+                        MultipartBody.Part.createFormData("files", file.name, body)
+                    })
+                    if (resp.isSuccessful) {
+                        val urlsSubidas = resp.body() ?: emptyList()
+                        fotosFinales.addAll(urlsSubidas)
+                        Log.d("PerfilEditar", "✅ Fotos subidas correctamente: $urlsSubidas")
+                    } else {
+                        Log.e("PerfilEditar", "⚠️ Error al subir fotos: ${resp.message()}")
+                    }
+                }
+
+                // ✅ 3️⃣ Construir body del perfil con las fotos actualizadas
+                val body = PerfilTengoLugarRequest(
+                    fotoPerfil = fotoFinal,
+                    fechaNacimiento = fechaNacimiento,
+                    arriendo = _state.value.arriendo ?: 0.0,
+                    cantidadHabitaciones = _state.value.cantidadHabitaciones ?: 0,
+                    maxRoomies = _state.value.maxRoomies ?: 1,
+                    barrio = _state.value.barrio ?: "",
+                    habitos = _state.value.habitos ?: "",
+                    genero = _state.value.genero,
+                    fuma = _state.value.fuma,
+                    alergico = _state.value.alergico,
+                    detalleAlergia = _state.value.detalleAlergia,
+                    idioma = _state.value.idioma,
+                    telefono = _state.value.telefono,
+                    descripcionLibre = _state.value.descripcionLibre,
+                    reglasConvivencia = _state.value.reglasConvivencia,
+                    serviciosIncluidos = _state.value.serviciosIncluidos,
+                    mascota = _state.value.mascota
+                )
+
+                // 🧾 Log de envío
+                Log.d("PerfilEditar", "📦 Cuerpo enviado:\n$body")
+                Log.d("PerfilEditar", "📸 Fotos residencia enviadas: $fotosFinales")
+
+                // ✅ 4️⃣ Enviar actualización del perfil
+                val response = api.editarPerfilTengoLugar(_state.value.userId, body)
+                Log.d("PerfilEditar", "📥 Respuesta: code=${response.code()}, success=${response.isSuccessful}")
+
+                if (response.isSuccessful) {
+                    Log.d("PerfilEditar", "✅ Perfil actualizado correctamente en el backend")
+                    onSuccess()
+                } else {
+                    val errorBody = response.errorBody()?.string()
+                    Log.e("PerfilEditar", "❌ Error al actualizar: ${response.message()} - $errorBody")
+                    onError("Error ${response.code()}: ${response.message()} \n$errorBody")
+                }
+            } catch (e: Exception) {
+                Log.e("PerfilEditar", "❌ Excepción al actualizar perfil", e)
+                onError(e.localizedMessage ?: "Error desconocido")
+            } finally {
+                _state.value = _state.value.copy(isLoading = false)
+            }
+        }
+    }
+
+    fun eliminarFotosResidencia(onSuccess: () -> Unit, onError: (String) -> Unit) {
+        viewModelScope.launch {
+            try {
+                _state.value = _state.value.copy(isLoading = true)
+                val response = api.eliminarFotosResidencia(_state.value.userId)
+
+                if (response.isSuccessful) {
+                    Log.d("PerfilFotos", "🗑️ Fotos de residencia eliminadas correctamente")
+                    _state.value = _state.value.copy(fotosResidencia = emptyList())
+                    onSuccess()
+                } else {
+                    val error = response.errorBody()?.string()
+                    Log.e("PerfilFotos", "❌ Error al eliminar fotos: $error")
+                    onError("Error al eliminar fotos: $error")
+                }
+            } catch (e: Exception) {
+                Log.e("PerfilFotos", "❌ Excepción al eliminar fotos", e)
+                onError(e.localizedMessage ?: "Error desconocido")
+            } finally {
+                _state.value = _state.value.copy(isLoading = false)
+            }
+        }
+    }
+
+    fun eliminarFotosResidencia(
+        urls: List<String>,
+        onSuccess: () -> Unit,
+        onError: (String) -> Unit
+    ) {
+        viewModelScope.launch {
+            try {
+                val userId = state.value.userId ?: run {
+                    Log.e("PerfilVM", "❌ ID de usuario no encontrado")
+                    onError("ID de usuario no encontrado")
+                    return@launch
+                }
+
+                Log.d("PerfilVM", "🗑️ === INICIANDO ELIMINACIÓN DE FOTOS ===")
+                Log.d("PerfilVM", "👤 UserId: $userId")
+                Log.d("PerfilVM", "📸 URLs a eliminar: $urls")
+                Log.d("PerfilVM", "🔢 Cantidad de URLs: ${urls.size}")
+
+                if (urls.isEmpty()) {
+                    Log.e("PerfilVM", "❌ Lista de URLs vacía")
+                    onError("No hay URLs para eliminar")
+                    return@launch
+                }
+
+                // 🔥 CAMBIO IMPORTANTE: Convertir List<String> a String separado por comas
+                val urlsString = urls.joinToString(",")
+                Log.d("PerfilVM", "📤 URLs como string: $urlsString")
+
+                val response = api.eliminarFotosResidenciaEspecificas(userId, urlsString)
+
+                Log.d("PerfilVM", "📡 Response code: ${response.code()}")
+                Log.d("PerfilVM", "📡 Response isSuccessful: ${response.isSuccessful}")
+
+                if (response.isSuccessful) {
+                    Log.d("PerfilVM", "✅ Fotos eliminadas correctamente en el backend")
+
+                    // Actualizar estado local
+                    val estadoActual = _state.value.fotosResidencia
+                    val nuevasFotos = estadoActual.filterNot { it in urls }
+                    _state.value = _state.value.copy(fotosResidencia = nuevasFotos)
+
+                    onSuccess()
+                } else {
+                    val errorBody = response.errorBody()?.string()
+                    Log.e("PerfilVM", "❌ Error response: $errorBody")
+                    Log.e("PerfilVM", "❌ Error code: ${response.code()}")
+
+                    val errorMsg = errorBody ?: "Error desconocido (código: ${response.code()})"
+                    onError(errorMsg)
+                }
+            } catch (e: Exception) {
+                Log.e("PerfilVM", "❌ Excepción al eliminar fotos: ${e.message}")
+                onError(e.message ?: "Error inesperado")
+            }
+        }
+    }
 }
