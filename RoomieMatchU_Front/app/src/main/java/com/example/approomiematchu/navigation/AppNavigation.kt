@@ -18,6 +18,7 @@ import com.example.approomiematchu.ui.HomeScreen
 import com.example.approomiematchu.ui.authentication.*
 import com.example.approomiematchu.ui.LandingScreen
 import com.example.approomiematchu.ui.PerfilBuscoLugarScreen
+import com.example.approomiematchu.ui.PerfilEditarScreenTengoLugar
 import com.example.approomiematchu.ui.PerfilTengoLugarScreen
 import com.example.approomiematchu.ui.ProfileScreen
 import com.example.approomiematchu.ui.home.HomeViewModel
@@ -149,10 +150,23 @@ fun AppNavigation(modifier: Modifier = Modifier) {
 
         composable(AppScreens.PerfilTengoLugar.route) {
             PerfilTengoLugarScreen(
-                onBackClick = { NavigationUtils.goBack(navController) },
-                homeViewModel = homeViewModel
+                homeViewModel = homeViewModel,
+                navController = navController
             )
         }
+
+        composable(AppScreens.PerfilEditarTengoLugar.route) {
+            val userProfile by homeViewModel.userProfile.collectAsState()
+            val userData by homeViewModel.userData.collectAsState()
+
+            PerfilEditarScreenTengoLugar(
+                userProfile = userProfile,
+                userData = userData,
+                homeViewModel = homeViewModel,
+                navController = navController
+            )
+        }
+
 
         // ---------- DESCRIPCIONES ----------
         composable(AppScreens.DescripcionBuscoCasa.route) {

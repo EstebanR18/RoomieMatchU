@@ -11,10 +11,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AddAPhoto
-import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
-import androidx.compose.material.icons.filled.Person
-import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.outlined.AddCircleOutline
 import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.material3.*
@@ -28,21 +25,20 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.navigation.NavController
 import coil3.compose.AsyncImage
 import com.example.approomiematchu.R
 import com.example.approomiematchu.data.remote.RetrofitClient
 import com.example.approomiematchu.data.remote.dto.PerfilResponse
 import com.example.approomiematchu.data.remote.dto.UserResponse
+import com.example.approomiematchu.navigation.AppScreens
 import com.example.approomiematchu.ui.home.HomeViewModel
 import com.example.approomiematchu.ui.profileconfig.presentation.PerfilCuestionarioViewModel
 import com.example.approomiematchu.ui.profileconfig.presentation.PerfilCuestionarioViewModelFactory
-import com.example.approomiematchu.ui.theme.RoomieMatchUTheme
 import com.example.approomiematchu.utils.uriToFile
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.Calendar
@@ -50,76 +46,56 @@ import java.util.Locale
 
 @Composable
 fun PerfilTengoLugarScreen(
-    onBackClick: () -> Unit,
-    homeViewModel: HomeViewModel
+    homeViewModel: HomeViewModel,
+    navController: NavController
 ) {
     val userProfile by homeViewModel.userProfile.collectAsState()
     val userData by homeViewModel.userData.collectAsState()
-    var isEditing by remember { mutableStateOf(false) }
 
-    // 🔹 Forzar recarga al salir del modo edición
-    LaunchedEffect(isEditing) {
-        if (!isEditing) {
-            userData?.id?.let { homeViewModel.loadUserProfile(it) }
-        }
+    LaunchedEffect(Unit) {
+        userData?.id?.let { homeViewModel.loadUserProfile(it) }
     }
 
-    if (isEditing) {
-        PerfilEditarScreenTengoLugar(
-            userProfile = userProfile,
-            userData = userData,
-            onBackClick = { isEditing = false },
-            homeViewModel = homeViewModel
-        )
-    } else {
-        PerfilVerScreenTengoLugar(
-            onBackClick = onBackClick,
-            onEditClick = { isEditing = true },
-            userProfile = userProfile,
-            userData = userData
-        )
-    }
+    PerfilVerScreenTengoLugar(
+        userProfile = userProfile,
+        userData = userData,
+        navController = navController
+    )
 }
-
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun PerfilVerScreenTengoLugar(
-    onBackClick: () -> Unit,
-    onEditClick: () -> Unit,
     userProfile: PerfilResponse? = null,
-    userData: UserResponse? = null
+    userData: UserResponse? = null,
+    navController: NavController
 ) {
     val scrollState = rememberScrollState()
 
-    // 🔹 Calcular edad
-    fun calcularEdad(fechaNacimiento: String?): Int? {
-        return try {
-            if (fechaNacimiento == null) return null
-            val formato = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
-            val fechaNac = formato.parse(fechaNacimiento)
-            val hoy = Calendar.getInstance()
-            val nacimiento = Calendar.getInstance().apply { time = fechaNac }
-            var edad = hoy.get(Calendar.YEAR) - nacimiento.get(Calendar.YEAR)
-            if (hoy.get(Calendar.DAY_OF_YEAR) < nacimiento.get(Calendar.DAY_OF_YEAR)) edad--
-            edad
-        } catch (e: Exception) {
-            null
-        }
-    }
-
-    val nombreConEdad = remember(userProfile, userData) {
+    // Nombre siempre recalculado con userProfile actualizado
+    val nombreConEdad = run {
         val nombreReal = userData?.nombreCompleto ?: "Mi perfil"
-        userProfile?.fechaNacimiento?.let { fechaNac ->
-            val edad = calcularEdad(fechaNac)
-            if (edad != null) "$nombreReal, $edad" else nombreReal
-        } ?: nombreReal
+        val fechaNacimiento = userProfile?.fechaNacimiento
+        if (!fechaNacimiento.isNullOrEmpty()) {
+            val formato = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
+            try {
+                val fechaNac = formato.parse(fechaNacimiento)
+                val hoy = Calendar.getInstance()
+                val nacimiento = Calendar.getInstance().apply { time = fechaNac }
+                var edad = hoy.get(Calendar.YEAR) - nacimiento.get(Calendar.YEAR)
+                if (hoy.get(Calendar.DAY_OF_YEAR) < nacimiento.get(Calendar.DAY_OF_YEAR)) edad--
+                "$nombreReal, $edad"
+            } catch (_: Exception) {
+                nombreReal
+            }
+        } else nombreReal
     }
 
     val serviciosIncluidos = userProfile?.serviciosIncluidos
-        ?.split(",")?.map { it.trim() }?.filter { it.isNotEmpty() } ?: emptyList()
+        ?.split(",")?.map { it.trim() }.orEmpty()
+
     val reglasConvivencia = userProfile?.reglasConvivencia
-        ?.split(",")?.map { it.trim() }?.filter { it.isNotEmpty() } ?: emptyList()
+        ?.split(",")?.map { it.trim() }.orEmpty()
 
     Column(
         modifier = Modifier
@@ -140,7 +116,9 @@ fun PerfilVerScreenTengoLugar(
                 modifier = Modifier
                     .align(Alignment.CenterStart)
                     .size(28.dp)
-                    .clickable { onBackClick() }
+                    .clickable {
+                        navController.popBackStack()
+                    }
             )
 
             Text(
@@ -158,7 +136,9 @@ fun PerfilVerScreenTengoLugar(
                 modifier = Modifier
                     .align(Alignment.CenterEnd)
                     .size(30.dp)
-                    .clickable { onEditClick() }
+                    .clickable {
+                        navController.navigate(AppScreens.PerfilEditarTengoLugar.route)
+                    }
             )
         }
 
@@ -321,11 +301,11 @@ fun PerfilVerScreenTengoLugar(
 fun PerfilEditarScreenTengoLugar(
     userProfile: PerfilResponse? = null,
     userData: UserResponse? = null,
-    onBackClick: () -> Unit,
     viewModel: PerfilCuestionarioViewModel = viewModel(
         factory = PerfilCuestionarioViewModelFactory(RetrofitClient.instance)
     ),
-    homeViewModel: HomeViewModel
+    homeViewModel: HomeViewModel,
+    navController: NavController
 ) {
     val context = LocalContext.current
     var isSaving by remember { mutableStateOf(false) }
@@ -464,7 +444,9 @@ fun PerfilEditarScreenTengoLugar(
                 modifier = Modifier
                     .align(Alignment.CenterStart)
                     .size(28.dp)
-                    .clickable { onBackClick() }
+                    .clickable {
+                        navController.navigate(AppScreens.PerfilTengoLugar.route)
+                    }
             )
 
             Text(
@@ -812,7 +794,7 @@ fun PerfilEditarScreenTengoLugar(
 
                                     // 6️⃣ Cerrar editor
                                     isSaving = false
-                                    onBackClick()
+                                    navController.popBackStack()
                                     Toast.makeText(context, "Perfil actualizado correctamente", Toast.LENGTH_SHORT).show()
                                 },
                                 onError = { msg ->
@@ -1020,22 +1002,6 @@ fun ResidenciaPhotosGridEditar(
             }
         }
     }
-}
-
-@Composable
-fun cuTextFieldColors(
-    containerColor: Color,
-    focusedIndicatorColor: Color,
-    unfocusedIndicatorColor: Color,
-    cursorColor: Color
-): TextFieldColors {
-    return TextFieldDefaults.colors(
-        focusedContainerColor = containerColor,
-        unfocusedContainerColor = containerColor,
-        cursorColor = cursorColor,
-        focusedIndicatorColor = focusedIndicatorColor,
-        unfocusedIndicatorColor = unfocusedIndicatorColor
-    )
 }
 
 /*
