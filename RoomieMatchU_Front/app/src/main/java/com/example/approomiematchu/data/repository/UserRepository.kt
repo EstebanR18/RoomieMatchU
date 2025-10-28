@@ -4,9 +4,11 @@ import com.example.approomiematchu.data.remote.RetrofitClient
 import com.example.approomiematchu.data.remote.api.ApiService
 import com.example.approomiematchu.data.remote.dto.LoginRequest
 import com.example.approomiematchu.data.remote.dto.LoginResponse
+import com.example.approomiematchu.data.remote.dto.PerfilResponse
 import com.example.approomiematchu.data.remote.dto.RegisterRequest
 import com.example.approomiematchu.data.remote.dto.RegisterResponse
 import com.example.approomiematchu.data.remote.dto.UserResponse
+import com.example.approomiematchu.ui.profileconfig.presentation.TipoPerfil
 
 class UserRepository(
     private val api: ApiService = RetrofitClient.instance
@@ -57,6 +59,53 @@ class UserRepository(
             }
         } catch (e: Exception) {
             Result.failure(e)
+        }
+    }
+
+    suspend fun obtenerPerfilUsuario(userId: Long): Result<PerfilResponse> {
+        return try {
+            val response = api.obtenerPerfil(userId)
+            if (response.isSuccessful) {
+                val perfil = response.body()
+                if (perfil != null) {
+                    Result.success(perfil)
+                } else {
+                    Result.failure(Exception("Perfil no encontrado"))
+                }
+            } else {
+                Result.failure(Exception("Error al obtener perfil: ${response.code()}"))
+            }
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    suspend fun obtenerTipoPerfil(userId: Long): TipoPerfil {
+        return try {
+            // Primero intentamos obtener el perfil completo
+            val perfilResponse = api.obtenerPerfil(userId)
+            if (perfilResponse.isSuccessful) {
+                val perfil = perfilResponse.body()
+                when (perfil?.tipo) {
+                    "BUSCO_LUGAR" -> TipoPerfil.BUSCO_LUGAR
+                    "TENGO_LUGAR" -> TipoPerfil.TENGO_LUGAR
+                    else -> TipoPerfil.NONE
+                }
+            } else {
+                // Si no tiene perfil, devolvemos NONE
+                TipoPerfil.NONE
+            }
+        } catch (e: Exception) {
+            TipoPerfil.NONE
+        }
+    }
+
+    suspend fun verificarPerfilCompleto(userId: Long): Boolean {
+        return try {
+            val response = api.obtenerPerfil(userId)
+            response.isSuccessful && response.body() != null
+        } catch (e: Exception) {
+            false
         }
     }
 

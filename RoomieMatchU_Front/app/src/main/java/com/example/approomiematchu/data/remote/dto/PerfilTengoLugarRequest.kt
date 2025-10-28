@@ -3,7 +3,7 @@ package com.example.approomiematchu.data.remote.dto
 data class PerfilTengoLugarRequest(
     // Obligatorios
     val fotoPerfil: String?, // se actualiza tras subirla
-    val fechaNacimiento: String,
+    val fechaNacimiento: String?,
     val arriendo: Double,
     val cantidadHabitaciones: Int,
     val maxRoomies: Int,

@@ -6,13 +6,17 @@ import androidx.lifecycle.viewModelScope
 import com.example.approomiematchu.data.remote.dto.LoginRequest
 import com.example.approomiematchu.data.remote.dto.RegisterRequest
 import com.example.approomiematchu.data.repository.UserRepository
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 
 class AuthViewModel(
     private val repository: UserRepository = UserRepository()
 ) : ViewModel() {
 
-    var userId = mutableStateOf<Long?>(null)
+    private val _userId = MutableStateFlow<Long?>(null)
+    val userId: StateFlow<Long?> = _userId.asStateFlow()
     var email = mutableStateOf("")
     var password = mutableStateOf("")
     var fullName = mutableStateOf("")
@@ -20,6 +24,10 @@ class AuthViewModel(
     var phone = mutableStateOf("")
     var errorMessage = mutableStateOf<String?>(null)
     var isLoading = mutableStateOf(false)
+
+    fun setUserId(id: Long) {
+        _userId.value = id
+    }
 
     fun login(
         onNavigateToHome: () -> Unit,
@@ -37,7 +45,7 @@ class AuthViewModel(
             result.onSuccess { response ->
                 errorMessage.value = null
                 val id = response.userId
-                userId.value = id // Guardar ID
+                _userId.value = id // Guardar ID usando StateFlow
 
                 // Obtener datos del usuario desde el endpoint
                 val userDataResult = repository.getUserById(id)

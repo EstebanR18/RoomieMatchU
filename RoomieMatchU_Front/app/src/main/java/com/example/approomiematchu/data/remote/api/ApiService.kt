@@ -4,6 +4,7 @@ import retrofit2.Response
 import retrofit2.http.*
 import com.example.approomiematchu.data.remote.dto.*
 import okhttp3.MultipartBody
+import okhttp3.ResponseBody
 
 interface ApiService {
 
@@ -45,6 +46,7 @@ interface ApiService {
         @Path("userId") userId: Long,
         @Part file: MultipartBody.Part
     ): Response<UploadResponse>
+
     @Multipart
     @POST("/api/perfil/{userId}/fotos-residencia")
     suspend fun subirFotosResidencia(
@@ -56,5 +58,28 @@ interface ApiService {
     suspend fun obtenerPerfil(
         @Path("userId") userId: Long
     ): Response<PerfilResponse>
+
+    @PUT("/api/perfil/busco-lugar/{userId}")
+    suspend fun editarPerfilBuscoLugar(
+        @Path("userId") userId: Long,
+        @Body request: PerfilBuscoLugarRequest
+    ): Response<ApiMessageResponse>
+
+    @PUT("/api/perfil/tengo-lugar/{userId}")
+    suspend fun editarPerfilTengoLugar(
+        @Path("userId") userId: Long,
+        @Body request: PerfilTengoLugarRequest
+    ): Response<ApiMessageResponse>
+
+    @DELETE("/api/perfil/{userId}/fotos-residencia")
+    suspend fun eliminarFotosResidencia(
+        @Path("userId") userId: Long
+    ): Response<ApiMessageResponse>
+
+    @DELETE("api/perfil/{userId}/fotos-residencia")
+    suspend fun eliminarFotosResidenciaEspecificas(
+        @Path("userId") userId: Long,
+        @Query("urls") urls: String // Cambia @Body por @Query
+    ): Response<ResponseBody>
 
 }

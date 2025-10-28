@@ -21,26 +21,116 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import com.example.approomiematchu.R
+import com.example.approomiematchu.navigation.AppScreens
+import com.example.approomiematchu.navigation.NavigationUtils
+import com.example.approomiematchu.ui.home.HomeViewModel
+import com.example.approomiematchu.ui.profileconfig.presentation.TipoPerfil
 import com.example.approomiematchu.ui.theme.RoomieMatchUTheme
 
 @Composable
-fun HomeScreen(navController: NavController) {
+fun HomeScreen(
+    navController: NavController,
+    homeViewModel: HomeViewModel,
+    userId: Long?
+){
 
-    // Puedes cambiar este estado manualmente para previsualizar dentro de la app
-    var currentState by remember { mutableStateOf(1) }
+    val homeState by homeViewModel.uiState.collectAsState()
+    val userProfile by homeViewModel.userProfile.collectAsState()
 
-    when (currentState) {
-        1 -> HomeTengoCasaScreen(onDescriptionClick = { currentState = 2 })
-        2 -> DescriptionTengoCasaScreen()
-        3 -> HomeBuscoCasaScreen(onDescriptionClick = { currentState = 4 })
-        4 -> DescriptionBuscoCasaScreen()
+    // Si no hay userId, redirigir al login
+    if (userId == null) {
+        LaunchedEffect(Unit) {
+            navController.navigate(AppScreens.LandingScreen.route) {
+                popUpTo(AppScreens.HomeScreen.route) { inclusive = true }
+            }
+        }
+        return
+    }
+
+    // Mostrar loading si está cargando
+    if (homeState.isLoading) {
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(Color(0xFFD2D0D0)),
+            contentAlignment = Alignment.Center
+        ) {
+            CircularProgressIndicator(color = MaterialTheme.colorScheme.primary)
+        }
+        return
+    }
+
+    // Mostrar error si hay
+    homeState.error?.let { error ->
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(Color(0xFFD2D0D0)),
+            contentAlignment = Alignment.Center
+        ) {
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.Center
+            ) {
+                Text(
+                    text = "Error: $error",
+                    color = MaterialTheme.colorScheme.error,
+                    textAlign = TextAlign.Center
+                )
+                Spacer(modifier = Modifier.height(16.dp))
+                Button(onClick = {
+                    homeViewModel.clearError()
+                    homeViewModel.loadUserProfile(userId)
+                }) {
+                    Text("Reintentar")
+                }
+            }
+        }
+        return
+    }
+
+    // Mostrar el home según el tipo de perfil
+    when (homeState.tipoPerfil) {
+        TipoPerfil.BUSCO_LUGAR -> HomeBuscoCasaScreen(
+            onDescriptionClick = {
+                NavigationUtils.navigateToDescription(navController, homeState.tipoPerfil)
+            },
+            onProfileClick = {
+                NavigationUtils.navigateToProfile(navController, homeState.tipoPerfil)
+            }
+        )
+        TipoPerfil.TENGO_LUGAR -> HomeTengoCasaScreen(
+            onDescriptionClick = {
+                NavigationUtils.navigateToDescription(navController, homeState.tipoPerfil)
+            },
+            onProfileClick = {
+                NavigationUtils.navigateToProfile(navController, homeState.tipoPerfil)
+            }
+        )
+        else -> {
+            // Si no tiene perfil, redirigir al cuestionario
+            LaunchedEffect(Unit) {
+                navController.navigate(AppScreens.CuestionarioRol.route) {
+                    popUpTo(AppScreens.HomeScreen.route) { inclusive = true }
+                }
+            }
+            // Mientras tanto mostrar loading
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(Color(0xFFD2D0D0)),
+                contentAlignment = Alignment.Center
+            ) {
+                CircularProgressIndicator(color = MaterialTheme.colorScheme.primary)
+            }
+        }
     }
 }
 
 /* -------------------- COMPONENTES REUTILIZABLES -------------------- */
 
 @Composable
-fun TopBar() {
+fun TopBar(onProfileClick: () -> Unit) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -62,7 +152,9 @@ fun TopBar() {
             imageVector = Icons.Default.Person,
             contentDescription = "Perfil",
             tint = MaterialTheme.colorScheme.primary,
-            modifier = Modifier.size(35.dp)
+            modifier = Modifier
+                .size(35.dp)
+                .clickable { onProfileClick() }
         )
     }
 }
@@ -109,7 +201,10 @@ fun ImageCarousel(imageList: List<Int>, modifier: Modifier = Modifier) {
 }
 /* -------------------- TENGO CASA - PANTALLA PRINCIPAL -------------------- */
 @Composable
-fun HomeTengoCasaScreen(onDescriptionClick: () -> Unit) {
+fun HomeTengoCasaScreen(
+    onDescriptionClick: () -> Unit,
+    onProfileClick: () -> Unit
+) {
     RoomieMatchUTheme {
         Box(
             modifier = Modifier
@@ -125,7 +220,7 @@ fun HomeTengoCasaScreen(onDescriptionClick: () -> Unit) {
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.Center // 🔹 CENTRA verticalmente todo
             ) {
-                TopBar()
+                TopBar(onProfileClick = onProfileClick)
 
                 // 🔹 Imagen principal (carrusel adaptativo)
                 val screenHeight = LocalConfiguration.current.screenHeightDp.dp
@@ -237,7 +332,7 @@ fun DescriptionTengoCasaScreen(onBackClick: () -> Unit = {}) {
                 .fillMaxSize()
                 .background(Color(0xFFD2D0D0))
         ) {
-            // 🔹 Encabezado fijo superior
+            // Encabezado fijo superior
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -420,7 +515,10 @@ fun Chip(text: String) {
 
 //* -------------------- BUSCO CASA - PANTALLA PRINCIPAL -------------------- */
 @Composable
-fun HomeBuscoCasaScreen(onDescriptionClick: () -> Unit) {
+fun HomeBuscoCasaScreen(
+    onDescriptionClick: () -> Unit,
+    onProfileClick: () -> Unit
+) {
     RoomieMatchUTheme {
         Box(
             modifier = Modifier
@@ -436,7 +534,7 @@ fun HomeBuscoCasaScreen(onDescriptionClick: () -> Unit) {
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.Center // 🔹 Centrado verticalmente
             ) {
-                TopBar()
+                TopBar(onProfileClick = onProfileClick)
 
                 // 🔹 Imagen principal (carrusel adaptativo)
                 val screenHeight = LocalConfiguration.current.screenHeightDp.dp
@@ -761,8 +859,9 @@ fun SectionTitle(text: String) {
     )
 }
 
+/*
 @Composable
-fun ChipRow(items: List<String>) {
+fun PerfilChipRow(items: List<String>) {
     FlowRow(
         horizontalArrangement = Arrangement.spacedBy(8.dp),
         verticalArrangement = Arrangement.spacedBy(8.dp)
@@ -780,7 +879,9 @@ fun ChipRow(items: List<String>) {
     }
 }
 
+ */
 
+/*
 @Preview(showBackground = true, showSystemUi = true, device = "spec:width=411dp,height=891dp,dpi=420")
 @Composable
 fun PreviewTengoCasaHome() {
@@ -812,3 +913,5 @@ fun PreviewBuscoCasaDescripcion() {
         DescriptionBuscoCasaScreen()
     }
 }
+
+ */
