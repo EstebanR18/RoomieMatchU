@@ -14,7 +14,9 @@ import jakarta.ws.rs.core.Response;
 import org.jboss.resteasy.reactive.RestForm;
 import org.jboss.resteasy.reactive.multipart.FileUpload;
 
+import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
 
 @Path("/api/perfil")
 @Consumes(MediaType.APPLICATION_JSON)
@@ -306,4 +308,40 @@ public class PerfilController {
                     .build();
         }
     }
+
+    // ---------------------- ELIMINAR LAS FOTOS DE RESIDENCIA ----------------------
+
+    @DELETE
+    @Path("/{userId}/fotos-residencia")
+    @Produces(MediaType.APPLICATION_JSON)
+    public Response eliminarFotosResidencia(
+            @PathParam("userId") Long userId,
+            @QueryParam("urls") String urlsParam
+    ) {
+        try {
+            System.out.println("🔍 [Backend] DELETE fotos-residencia llamado");
+            System.out.println("👤 UserId: " + userId);
+            System.out.println("📤 URLs param recibido: " + urlsParam);
+
+            if (urlsParam == null || urlsParam.isEmpty()) {
+                System.out.println("❌ [Backend] URLs param está vacío o nulo");
+                return Response.status(Response.Status.BAD_REQUEST)
+                        .entity(Map.of("error", "No se proporcionaron URLs para eliminar"))
+                        .build();
+            }
+
+            List<String> urlsAEliminar = Arrays.asList(urlsParam.split(","));
+            System.out.println("📸 URLs a eliminar procesadas: " + urlsAEliminar);
+
+            perfilService.eliminarFotosResidenciaEspecificas(userId, urlsAEliminar);
+            return Response.ok(Map.of("message", "Fotos eliminadas correctamente")).build();
+
+        } catch (Exception e) {
+            e.printStackTrace();
+            return Response.status(Response.Status.INTERNAL_SERVER_ERROR)
+                    .entity(Map.of("error", e.getMessage()))
+                    .build();
+        }
+    }
+
 }

@@ -8,6 +8,7 @@ import software.amazon.awssdk.auth.credentials.AwsBasicCredentials;
 import software.amazon.awssdk.auth.credentials.StaticCredentialsProvider;
 import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.s3.S3Client;
+import software.amazon.awssdk.services.s3.model.DeleteObjectRequest;
 import software.amazon.awssdk.services.s3.model.PutObjectRequest;
 
 import java.nio.file.Path;
@@ -49,4 +50,31 @@ public class S3Uploader {
         s3Client.putObject(request, filePath);
         return "https://" + bucketName + ".s3.amazonaws.com/" + key;
     }
+
+    public void deleteFileByUrl(String fileUrl) {
+        if (fileUrl == null || fileUrl.isBlank()) {
+            System.out.println("⚠️ [S3Uploader] URL vacía o nula, se omite eliminación.");
+            return;
+        }
+
+        try {
+            // ✅ Usar el bucket real configurado en application.properties
+            String key = fileUrl.substring(fileUrl.indexOf(bucketName + "/") + (bucketName + "/").length());
+
+            System.out.println("🧾 [S3Uploader] Eliminando archivo del bucket '" + bucketName + "' con key: " + key);
+
+            s3Client.deleteObject(DeleteObjectRequest.builder()
+                    .bucket(bucketName)
+                    .key(key)
+                    .build());
+
+            System.out.println("✅ [S3Uploader] Archivo eliminado correctamente de S3.");
+
+        } catch (Exception e) {
+            System.out.println("❌ [S3Uploader] Error al eliminar archivo de S3: " + e.getMessage());
+            e.printStackTrace();
+        }
+    }
+
+
 }

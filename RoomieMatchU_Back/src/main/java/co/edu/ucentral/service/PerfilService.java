@@ -302,5 +302,34 @@ public class PerfilService {
         }
         return urls;
     }
+
+
+    @Transactional
+    public void eliminarFotosResidenciaEspecificas(Long userId, List<String> urlsAEliminar) {
+        // 🔥 CAMBIO: Usar "userId" en lugar de "user_id"
+        PerfilTengoLugarEntity perfil = perfilTengoRepo.findByUserId(userId);
+
+        if (perfil == null) {
+            throw new RuntimeException("Perfil no encontrado para el usuario ID " + userId);
+        }
+
+        for (String url : urlsAEliminar) {
+            try {
+                FotoResidenciaEntity foto = fotoRepo.find("url", url).firstResult();
+                if (foto != null) {
+                    s3Uploader.deleteFileByUrl(url);
+                    fotoRepo.delete(foto);
+                    System.out.println("🗑️ [PerfilService] Foto eliminada: " + url);
+                } else {
+                    System.out.println("⚠️ [PerfilService] Foto no encontrada en BD: " + url);
+                }
+            } catch (Exception e) {
+                System.out.println("❌ [PerfilService] Error al eliminar foto " + url + ": " + e.getMessage());
+            }
+        }
+
+        System.out.println("✅ [PerfilService] Fotos eliminadas correctamente para userId=" + userId);
+    }
+
 }
 
