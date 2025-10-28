@@ -71,11 +71,6 @@ interface ApiService {
         @Body request: PerfilTengoLugarRequest
     ): Response<ApiMessageResponse>
 
-    @DELETE("/api/perfil/{userId}/fotos-residencia")
-    suspend fun eliminarFotosResidencia(
-        @Path("userId") userId: Long
-    ): Response<ApiMessageResponse>
-
     @DELETE("api/perfil/{userId}/fotos-residencia")
     suspend fun eliminarFotosResidenciaEspecificas(
         @Path("userId") userId: Long,

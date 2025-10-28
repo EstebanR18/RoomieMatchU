@@ -46,16 +46,10 @@ import java.util.Locale
 
 @Composable
 fun PerfilTengoLugarScreen(
-    homeViewModel: HomeViewModel,
+    userProfile: PerfilResponse? = null,
+    userData: UserResponse? = null,
     navController: NavController
 ) {
-    val userProfile by homeViewModel.userProfile.collectAsState()
-    val userData by homeViewModel.userData.collectAsState()
-
-    LaunchedEffect(Unit) {
-        userData?.id?.let { homeViewModel.loadUserProfile(it) }
-    }
-
     PerfilVerScreenTengoLugar(
         userProfile = userProfile,
         userData = userData,
@@ -790,7 +784,7 @@ fun PerfilEditarScreenTengoLugar(
                                 fechaNacimiento = userProfile?.fechaNacimiento,
                                 onSuccess = {
                                     // 5️⃣ Recargar perfil en HomeViewModel
-                                    userData.id?.let { homeViewModel.loadUserProfile(it) }
+                                    homeViewModel.loadUserProfile(userId)
 
                                     // 6️⃣ Cerrar editor
                                     isSaving = false

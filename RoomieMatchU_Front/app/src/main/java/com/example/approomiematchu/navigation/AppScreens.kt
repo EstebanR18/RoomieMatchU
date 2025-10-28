@@ -31,6 +31,8 @@ sealed class AppScreens(val route: String) {
 
     // ----------- PERFILES -----------
     object PerfilBuscoLugar : AppScreens("perfil_busco_lugar")
+
+    object PerfilEditarBuscoLugar : AppScreens("perfil_editar_busco_lugar")
     object PerfilTengoLugar : AppScreens("perfil_tengo_lugar")
     object PerfilEditarTengoLugar : AppScreens("perfil_editar_tengo_lugar")
 

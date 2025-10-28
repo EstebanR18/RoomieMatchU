@@ -16,7 +16,6 @@ import kotlinx.coroutines.launch
 import okhttp3.MediaType.Companion.toMediaTypeOrNull
 import okhttp3.MultipartBody
 import okhttp3.RequestBody.Companion.asRequestBody
-import java.io.File
 
 
 class PerfilCuestionarioViewModel(
@@ -456,30 +455,6 @@ class PerfilCuestionarioViewModel(
                 }
             } catch (e: Exception) {
                 Log.e("PerfilEditar", "❌ Excepción al actualizar perfil", e)
-                onError(e.localizedMessage ?: "Error desconocido")
-            } finally {
-                _state.value = _state.value.copy(isLoading = false)
-            }
-        }
-    }
-
-    fun eliminarFotosResidencia(onSuccess: () -> Unit, onError: (String) -> Unit) {
-        viewModelScope.launch {
-            try {
-                _state.value = _state.value.copy(isLoading = true)
-                val response = api.eliminarFotosResidencia(_state.value.userId)
-
-                if (response.isSuccessful) {
-                    Log.d("PerfilFotos", "🗑️ Fotos de residencia eliminadas correctamente")
-                    _state.value = _state.value.copy(fotosResidencia = emptyList())
-                    onSuccess()
-                } else {
-                    val error = response.errorBody()?.string()
-                    Log.e("PerfilFotos", "❌ Error al eliminar fotos: $error")
-                    onError("Error al eliminar fotos: $error")
-                }
-            } catch (e: Exception) {
-                Log.e("PerfilFotos", "❌ Excepción al eliminar fotos", e)
                 onError(e.localizedMessage ?: "Error desconocido")
             } finally {
                 _state.value = _state.value.copy(isLoading = false)

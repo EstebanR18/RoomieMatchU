@@ -1,5 +1,10 @@
 package com.example.approomiematchu.ui
 
+import android.net.Uri
+import android.util.Log
+import android.widget.Toast
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -27,6 +32,7 @@ import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -38,45 +44,44 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.navigation.NavController
 import coil3.compose.AsyncImage
 import com.example.approomiematchu.R
+import com.example.approomiematchu.data.remote.RetrofitClient
 import com.example.approomiematchu.data.remote.dto.PerfilResponse
 import com.example.approomiematchu.data.remote.dto.UserResponse
+import com.example.approomiematchu.navigation.AppScreens
+import com.example.approomiematchu.ui.home.HomeViewModel
+import com.example.approomiematchu.ui.profileconfig.presentation.PerfilCuestionarioViewModel
+import com.example.approomiematchu.ui.profileconfig.presentation.PerfilCuestionarioViewModelFactory
+import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.Locale
 
 @Composable
 fun PerfilBuscoLugarScreen(
-    onBackClick: () -> Unit,
     userProfile: PerfilResponse? = null,
-    userData: UserResponse? = null
+    userData: UserResponse? = null,
+    navController: NavController
 ) {
-    var isEditing by remember { mutableStateOf(false) }
-
-    if (isEditing) {
-        PerfilEditarScreenBuscoLugar(
-            userProfile = userProfile,
-            userData = userData,
-            onBackClick = { isEditing = false } // volver al perfil sin editar
-        )
-    } else {
-        PerfilVerScreenBuscoLugar(
-            onBackClick = onBackClick,
-            onEditClick = { isEditing = true }, // entrar en modo edición
-            userProfile = userProfile,
-            userData = userData
-        )
-    }
+    PerfilVerScreenBuscoLugar(
+        userProfile = userProfile,
+        userData = userData,
+        navController = navController
+    )
 }
 
 @OptIn(ExperimentalLayoutApi::class)
@@ -84,12 +89,11 @@ fun PerfilBuscoLugarScreen(
 fun PerfilVerScreenBuscoLugar(
     userProfile: PerfilResponse? = null,
     userData: UserResponse? = null,
-    onBackClick: () -> Unit,
-    onEditClick: () -> Unit
+    navController: NavController
 ) {
     val scrollState = rememberScrollState()
 
-    // 🔹 Calcular edad
+    // calcular edad sin remember para que se recalcule siempre con userProfile nuevo
     fun calcularEdad(fechaNacimiento: String?): Int? {
         return try {
             if (fechaNacimiento == null) return null
@@ -100,10 +104,12 @@ fun PerfilVerScreenBuscoLugar(
             var edad = hoy.get(Calendar.YEAR) - nacimiento.get(Calendar.YEAR)
             if (hoy.get(Calendar.DAY_OF_YEAR) < nacimiento.get(Calendar.DAY_OF_YEAR)) edad--
             edad
-        } catch (e: Exception) { null }
+        } catch (e: Exception) {
+            null
+        }
     }
 
-    val nombreConEdad = remember(userProfile, userData) {
+    val nombreConEdad = run {
         val nombreReal = userData?.nombreCompleto ?: "Mi perfil"
         userProfile?.fechaNacimiento?.let { fechaNac ->
             val edad = calcularEdad(fechaNac)
@@ -111,7 +117,6 @@ fun PerfilVerScreenBuscoLugar(
         } ?: nombreReal
     }
 
-    // 🔹 Convertir booleanos en texto
     val fumaTexto = if (userProfile?.fuma == true) "Fumo" else "No fumo"
     val mascotaTexto = if (userProfile?.mascota == true) "Tengo mascota" else "No tengo mascota"
     val alergiaTexto = when {
@@ -120,7 +125,6 @@ fun PerfilVerScreenBuscoLugar(
         else -> "Sin alergias"
     }
 
-    // 🔹 Datos base (listas de chips visibles)
     val habitosChips = listOf(fumaTexto, mascotaTexto, alergiaTexto)
     val serviciosChips = userProfile?.serviciosDeseados
         ?.split(",")?.map { it.trim() }?.filter { it.isNotEmpty() } ?: emptyList()
@@ -133,13 +137,20 @@ fun PerfilVerScreenBuscoLugar(
     ) {
         // Encabezado
         Box(
-            modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp)
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(bottom = 8.dp)
         ) {
             Icon(
                 painter = painterResource(id = R.drawable.ic_atras_screens),
                 contentDescription = "Atrás",
                 tint = MaterialTheme.colorScheme.primary,
-                modifier = Modifier.align(Alignment.CenterStart).size(28.dp).clickable { onBackClick() }
+                modifier = Modifier
+                    .align(Alignment.CenterStart)
+                    .size(28.dp)
+                    .clickable {
+                        navController.popBackStack()
+                    }
             )
 
             Text(
@@ -154,17 +165,26 @@ fun PerfilVerScreenBuscoLugar(
                 imageVector = Icons.Default.Edit,
                 contentDescription = "Editar",
                 tint = MaterialTheme.colorScheme.primary,
-                modifier = Modifier.align(Alignment.CenterEnd).size(30.dp).clickable { onEditClick() }
+                modifier = Modifier
+                    .align(Alignment.CenterEnd)
+                    .size(30.dp)
+                    .clickable {
+                        navController.navigate(AppScreens.PerfilEditarBuscoLugar.route)
+                    }
             )
         }
 
         // Contenido scroll
         Column(
-            modifier = Modifier.verticalScroll(scrollState).padding(bottom = 100.dp)
+            modifier = Modifier
+                .verticalScroll(scrollState)
+                .padding(bottom = 100.dp)
         ) {
             // Foto
             Row(
-                modifier = Modifier.fillMaxWidth().height(180.dp),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(180.dp),
                 horizontalArrangement = Arrangement.Center,
                 verticalAlignment = Alignment.Bottom
             ) {
@@ -233,61 +253,103 @@ fun PerfilVerScreenBuscoLugar(
             Spacer(modifier = Modifier.height(24.dp))
 
             // Género
-            Text("Género", style = MaterialTheme.typography.headlineLarge, color = MaterialTheme.colorScheme.primary)
+            Text(
+                "Género",
+                style = MaterialTheme.typography.headlineLarge,
+                color = MaterialTheme.colorScheme.primary
+            )
             PerfilChipRow(listOfNotNull(userProfile?.genero))
 
             Spacer(modifier = Modifier.height(16.dp))
 
             // Hábitos
-            Text("Hábitos", style = MaterialTheme.typography.headlineLarge, color = MaterialTheme.colorScheme.primary)
+            Text(
+                "Hábitos",
+                style = MaterialTheme.typography.headlineLarge,
+                color = MaterialTheme.colorScheme.primary
+            )
             PerfilChipRow(habitosChips)
 
             Spacer(modifier = Modifier.height(16.dp))
 
             // Idioma
-            Text("Idioma", style = MaterialTheme.typography.headlineLarge, color = MaterialTheme.colorScheme.primary)
-            PerfilChipRow(listOfNotNull(userProfile?.idioma?.takeIf { it.isNotEmpty() } ?: "No especificado"))
+            Text(
+                "Idioma",
+                style = MaterialTheme.typography.headlineLarge,
+                color = MaterialTheme.colorScheme.primary
+            )
+            PerfilChipRow(listOfNotNull(userProfile?.idioma?.takeIf { it.isNotEmpty() }
+                ?: "No especificado"))
 
             Spacer(modifier = Modifier.height(16.dp))
 
             // Teléfono
-            Text("Teléfono", style = MaterialTheme.typography.headlineLarge, color = MaterialTheme.colorScheme.primary)
+            Text(
+                "Teléfono",
+                style = MaterialTheme.typography.headlineLarge,
+                color = MaterialTheme.colorScheme.primary
+            )
             PerfilChipRow(listOfNotNull(userProfile?.telefono ?: "No registrado"))
 
             Spacer(modifier = Modifier.height(16.dp))
 
             // Presupuesto
-            Text("Presupuesto máximo", style = MaterialTheme.typography.headlineLarge, color = MaterialTheme.colorScheme.primary)
-            PerfilChipRow(listOfNotNull(userProfile?.presupuesto?.let { "$${"%,.0f".format(it)}" } ?: "No definido"))
+            Text(
+                "Presupuesto máximo",
+                style = MaterialTheme.typography.headlineLarge,
+                color = MaterialTheme.colorScheme.primary
+            )
+            PerfilChipRow(listOfNotNull(userProfile?.presupuesto?.let { "$${"%,.0f".format(it)}" }
+                ?: "No definido"))
 
             Spacer(modifier = Modifier.height(16.dp))
 
             // Tiempo estimado de estancia
-            Text("Tiempo estimado de estancia", style = MaterialTheme.typography.headlineLarge, color = MaterialTheme.colorScheme.primary)
+            Text(
+                "Tiempo estimado de estancia",
+                style = MaterialTheme.typography.headlineLarge,
+                color = MaterialTheme.colorScheme.primary
+            )
             PerfilChipRow(listOfNotNull(userProfile?.tiempoEstancia ?: "No definido"))
 
             Spacer(modifier = Modifier.height(16.dp))
 
             // Personas convivencia
-            Text("Personas con las que estaría dispuesto a vivir", style = MaterialTheme.typography.headlineLarge, color = MaterialTheme.colorScheme.primary)
+            Text(
+                "Personas con las que estaría dispuesto a vivir",
+                style = MaterialTheme.typography.headlineLarge,
+                color = MaterialTheme.colorScheme.primary
+            )
             PerfilChipRow(listOfNotNull(userProfile?.personasConvivencia ?: "No definido"))
 
             Spacer(modifier = Modifier.height(16.dp))
 
             // Zona o barrio
-            Text("Zona o barrio preferido", style = MaterialTheme.typography.headlineLarge, color = MaterialTheme.colorScheme.primary)
+            Text(
+                "Zona o barrio preferido",
+                style = MaterialTheme.typography.headlineLarge,
+                color = MaterialTheme.colorScheme.primary
+            )
             PerfilChipRow(listOfNotNull(userProfile?.barrio ?: "No definido"))
 
             Spacer(modifier = Modifier.height(16.dp))
 
             // Fecha de mudanza
-            Text("Fecha en la que necesita mudarse", style = MaterialTheme.typography.headlineLarge, color = MaterialTheme.colorScheme.primary)
+            Text(
+                "Fecha en la que necesita mudarse",
+                style = MaterialTheme.typography.headlineLarge,
+                color = MaterialTheme.colorScheme.primary
+            )
             PerfilChipRow(listOfNotNull(userProfile?.fechaMudanza ?: "No definida"))
 
             Spacer(modifier = Modifier.height(16.dp))
 
             // Servicios deseados
-            Text("Servicios indispensables que busca", style = MaterialTheme.typography.headlineLarge, color = MaterialTheme.colorScheme.primary)
+            Text(
+                "Servicios indispensables que busca",
+                style = MaterialTheme.typography.headlineLarge,
+                color = MaterialTheme.colorScheme.primary
+            )
             PerfilChipRow(serviciosChips.ifEmpty { listOf("No especificado") })
 
             Spacer(modifier = Modifier.height(50.dp))
@@ -335,14 +397,37 @@ fun PerfilChipRow(items: List<String>) {
 fun PerfilEditarScreenBuscoLugar(
     userProfile: PerfilResponse? = null,
     userData: UserResponse? = null,
-    onBackClick: () -> Unit
+    viewModel: PerfilCuestionarioViewModel = viewModel(
+        factory = PerfilCuestionarioViewModelFactory(RetrofitClient.instance)
+    ),
+    homeViewModel: HomeViewModel,
+    navController: NavController
 ) {
-    // 🔹 Variables editables
+    val context = LocalContext.current
+    var isSaving by remember { mutableStateOf(false) }
+    val scrollState = rememberScrollState()
+    val scope = rememberCoroutineScope()
+
+    // Campos editables inicializados con userProfile
     var descripcion by remember { mutableStateOf(userProfile?.descripcionLibre ?: "") }
     var presupuesto by remember { mutableStateOf(userProfile?.presupuesto?.toString() ?: "") }
     var barrio by remember { mutableStateOf(userProfile?.barrio ?: "") }
     var idioma by remember { mutableStateOf(userProfile?.idioma ?: "") }
     var telefono by remember { mutableStateOf(userProfile?.telefono ?: "") }
+
+    // Foto de perfil
+    var nuevaFotoPerfilUri by remember { mutableStateOf<Uri?>(null) }
+    var fotoPerfilActualizada by remember { mutableStateOf(false) }
+
+    val launcherFotoPerfil = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.GetContent()
+    ) { uri: Uri? ->
+        uri?.let {
+            nuevaFotoPerfilUri = it
+            fotoPerfilActualizada = true
+            viewModel.actualizarFotoPerfilLocal(it.toString())
+        }
+    }
 
     // 🔹 Selecciones iniciales (listas base)
     val generos = listOf("Femenino", "Masculino", "Otro")
@@ -358,11 +443,10 @@ fun PerfilEditarScreenBuscoLugar(
     val fechasMudanza = listOf("Inmediato", "Próximo mes", "En 2 a 3 meses")
 
     val serviciosDisponibles = listOf(
-        "Internet", "Amoblado", "Lavadora",
-        "Baño Privado", "Televisión", "Secadora",
-        "Agua Caliente", "Cocina equipada",
-        "Nevera compartida", "Parqueadero",
-        "Acceso inclusivo", "Espacios comunes (sala, comedor)"
+        "Internet", "Agua Caliente", "Lavadora",
+        "Secadora", "Amoblado básico", "Baño privado",
+        "Televisión", "Cocina equipada", "Nevera compartida",
+        "Parqueadero", "Espacios comunes", "Acceso inclusivo"
     )
 
     // 🔹 Selecciones recordadas
@@ -396,7 +480,9 @@ fun PerfilEditarScreenBuscoLugar(
             var edad = hoy.get(Calendar.YEAR) - nacimiento.get(Calendar.YEAR)
             if (hoy.get(Calendar.DAY_OF_YEAR) < nacimiento.get(Calendar.DAY_OF_YEAR)) edad--
             edad
-        } catch (e: Exception) { null }
+        } catch (e: Exception) {
+            null
+        }
     }
 
     val nombreConEdad = remember(userProfile, userData) {
@@ -407,7 +493,30 @@ fun PerfilEditarScreenBuscoLugar(
         } ?: nombreReal
     }
 
-    val scrollState = rememberScrollState()
+    fun editarPerfilDespuesDeFoto(userId: Long) {
+        scope.launch {
+            try {
+                viewModel.editarPerfilBusco(
+                    onSuccess = {
+                        homeViewModel.loadUserProfile(userId)
+                        isSaving = false
+                        navController.popBackStack()
+                        Toast.makeText(context, "Perfil actualizado correctamente", Toast.LENGTH_SHORT).show()
+                    },
+                    onError = { msg ->
+                        isSaving = false
+                        Toast.makeText(context, "Error al actualizar: $msg", Toast.LENGTH_LONG).show()
+                        Log.e("PerfilEditarBusco", "Error editando perfil: $msg")
+                    }
+                )
+            } catch (e: Exception) {
+                isSaving = false
+                Toast.makeText(context, "Error inesperado: ${e.message}", Toast.LENGTH_LONG).show()
+                Log.e("PerfilEditarBusco", "Stack: ${e.stackTraceToString()}")
+            }
+        }
+    }
+
 
     // 🔹 UI
     Column(
@@ -418,13 +527,20 @@ fun PerfilEditarScreenBuscoLugar(
     ) {
         // Encabezado
         Box(
-            modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp)
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(bottom = 8.dp)
         ) {
             Icon(
                 painter = painterResource(id = R.drawable.ic_atras_screens),
                 contentDescription = "Atrás",
                 tint = MaterialTheme.colorScheme.primary,
-                modifier = Modifier.align(Alignment.CenterStart).size(28.dp).clickable { onBackClick() }
+                modifier = Modifier
+                    .align(Alignment.CenterStart)
+                    .size(28.dp)
+                    .clickable {
+                        navController.navigate(AppScreens.PerfilBuscoLugar.route)
+                    }
             )
 
             Text(
@@ -439,13 +555,17 @@ fun PerfilEditarScreenBuscoLugar(
                 imageVector = Icons.Default.Settings,
                 contentDescription = "Ajustes",
                 tint = MaterialTheme.colorScheme.primary,
-                modifier = Modifier.align(Alignment.CenterEnd).size(30.dp)
+                modifier = Modifier
+                    .align(Alignment.CenterEnd)
+                    .size(30.dp)
             )
         }
 
         // Contenido scrolleable
         Column(
-            modifier = Modifier.verticalScroll(scrollState).padding(bottom = 100.dp)
+            modifier = Modifier
+                .verticalScroll(scrollState)
+                .padding(bottom = 100.dp)
         ) {
             // Foto de perfil
             Row(
@@ -455,11 +575,11 @@ fun PerfilEditarScreenBuscoLugar(
                 horizontalArrangement = Arrangement.Center,
                 verticalAlignment = Alignment.Bottom
             ) {
-                val fotoPerfil = userProfile?.fotoPerfil
+                val fotoActual = nuevaFotoPerfilUri?.toString() ?: userProfile?.fotoPerfil
 
-                if (!fotoPerfil.isNullOrEmpty()) {
+                if (!fotoActual.isNullOrEmpty()) {
                     AsyncImage(
-                        model = fotoPerfil,
+                        model = fotoActual,
                         contentDescription = "Foto de perfil",
                         modifier = Modifier
                             .size(160.dp)
@@ -487,9 +607,7 @@ fun PerfilEditarScreenBuscoLugar(
                     modifier = Modifier
                         .padding(start = 8.dp)
                         .size(36.dp)
-                        .clickable {
-                            // TODO: lógica para seleccionar nueva foto más adelante
-                        }
+                        .clickable { launcherFotoPerfil.launch("image/*") }
                 )
             }
 
@@ -541,7 +659,11 @@ fun PerfilEditarScreenBuscoLugar(
             Spacer(modifier = Modifier.height(24.dp))
 
             // 🔸 Género
-            Text("Género", style = MaterialTheme.typography.headlineLarge, color = MaterialTheme.colorScheme.primary)
+            Text(
+                "Género",
+                style = MaterialTheme.typography.headlineLarge,
+                color = MaterialTheme.colorScheme.primary
+            )
             FlowRow(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                 generos.forEach { genero ->
                     val selected = generoSeleccionado.value == genero
@@ -552,7 +674,11 @@ fun PerfilEditarScreenBuscoLugar(
             Spacer(modifier = Modifier.height(16.dp))
 
             // 🔸 Fuma / Mascota
-            Text("Hábitos", style = MaterialTheme.typography.headlineLarge, color = MaterialTheme.colorScheme.primary)
+            Text(
+                "Hábitos",
+                style = MaterialTheme.typography.headlineLarge,
+                color = MaterialTheme.colorScheme.primary
+            )
             FlowRow(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                 ChipToggle("Fumo", fuma.value) { fuma.value = !fuma.value }
                 ChipToggle("Tengo mascota", mascota.value) { mascota.value = !mascota.value }
@@ -561,7 +687,11 @@ fun PerfilEditarScreenBuscoLugar(
             Spacer(modifier = Modifier.height(16.dp))
 
             // 🔸 Alergias
-            Text("Alergias", style = MaterialTheme.typography.headlineLarge, color = MaterialTheme.colorScheme.primary)
+            Text(
+                "Alergias",
+                style = MaterialTheme.typography.headlineLarge,
+                color = MaterialTheme.colorScheme.primary
+            )
             FlowRow(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                 ChipToggle("Soy alérgico", alergico.value) { alergico.value = !alergico.value }
             }
@@ -585,7 +715,11 @@ fun PerfilEditarScreenBuscoLugar(
             Spacer(modifier = Modifier.height(16.dp))
 
             // 🔸 Idioma
-            Text("Idioma", style = MaterialTheme.typography.headlineLarge, color = MaterialTheme.colorScheme.primary)
+            Text(
+                "Idioma",
+                style = MaterialTheme.typography.headlineLarge,
+                color = MaterialTheme.colorScheme.primary
+            )
             TextField(
                 value = idioma,
                 onValueChange = { idioma = it },
@@ -603,7 +737,11 @@ fun PerfilEditarScreenBuscoLugar(
             Spacer(modifier = Modifier.height(16.dp))
 
             // 🔸 Teléfono
-            Text("Teléfono", style = MaterialTheme.typography.headlineLarge, color = MaterialTheme.colorScheme.primary)
+            Text(
+                "Teléfono",
+                style = MaterialTheme.typography.headlineLarge,
+                color = MaterialTheme.colorScheme.primary
+            )
             TextField(
                 value = telefono,
                 onValueChange = { telefono = it },
@@ -621,7 +759,11 @@ fun PerfilEditarScreenBuscoLugar(
             Spacer(modifier = Modifier.height(16.dp))
 
             // 🔸 Presupuesto
-            Text("Presupuesto máximo", style = MaterialTheme.typography.headlineLarge, color = MaterialTheme.colorScheme.primary)
+            Text(
+                "Presupuesto máximo",
+                style = MaterialTheme.typography.headlineLarge,
+                color = MaterialTheme.colorScheme.primary
+            )
             TextField(
                 value = presupuesto,
                 onValueChange = { presupuesto = it },
@@ -640,48 +782,82 @@ fun PerfilEditarScreenBuscoLugar(
             Spacer(modifier = Modifier.height(16.dp))
 
             // 🔸 Tiempo estimado de estancia
-            Text("Tiempo estimado de estancia", style = MaterialTheme.typography.headlineLarge, color = MaterialTheme.colorScheme.primary)
+            Text(
+                "Tiempo estimado de estancia",
+                style = MaterialTheme.typography.headlineLarge,
+                color = MaterialTheme.colorScheme.primary
+            )
             FlowRow(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                 tiemposEstancia.forEach { tiempo ->
-                    ChipToggle(tiempo, tiempoEstanciaSeleccionado.value == tiempo) { tiempoEstanciaSeleccionado.value = tiempo }
+                    ChipToggle(
+                        tiempo,
+                        tiempoEstanciaSeleccionado.value == tiempo
+                    ) { tiempoEstanciaSeleccionado.value = tiempo }
                 }
             }
 
             Spacer(modifier = Modifier.height(16.dp))
 
             // 🔸 Personas convivencia
-            Text("Personas con las que estarías dispuesto a vivir", style = MaterialTheme.typography.headlineLarge, color = MaterialTheme.colorScheme.primary)
+            Text(
+                "Personas con las que estarías dispuesto a vivir",
+                style = MaterialTheme.typography.headlineLarge,
+                color = MaterialTheme.colorScheme.primary
+            )
             FlowRow(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                 personasConvivencia.forEach { grupo ->
-                    ChipToggle(grupo, personasSeleccionadas.value == grupo) { personasSeleccionadas.value = grupo }
+                    ChipToggle(
+                        grupo,
+                        personasSeleccionadas.value == grupo
+                    ) { personasSeleccionadas.value = grupo }
                 }
             }
 
             Spacer(modifier = Modifier.height(16.dp))
 
             // 🔸 Zona o barrio
-            Text("Zona o barrio preferido", style = MaterialTheme.typography.headlineLarge, color = MaterialTheme.colorScheme.primary)
+            Text(
+                "Zona o barrio preferido",
+                style = MaterialTheme.typography.headlineLarge,
+                color = MaterialTheme.colorScheme.primary
+            )
             FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 zonas.forEach { zona ->
-                    ChipToggle(zona, zonaSeleccionada.value == zona) { zonaSeleccionada.value = zona }
+                    ChipToggle(zona, zonaSeleccionada.value == zona) {
+                        zonaSeleccionada.value = zona
+                    }
                 }
             }
 
             Spacer(modifier = Modifier.height(16.dp))
 
             // 🔸 Fecha de mudanza
-            Text("Fecha en la que necesitas mudarte", style = MaterialTheme.typography.headlineLarge, color = MaterialTheme.colorScheme.primary)
+            Text(
+                "Fecha en la que necesitas mudarte",
+                style = MaterialTheme.typography.headlineLarge,
+                color = MaterialTheme.colorScheme.primary
+            )
             FlowRow(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                 fechasMudanza.forEach { fecha ->
-                    ChipToggle(fecha, fechaMudanzaSeleccionada.value == fecha) { fechaMudanzaSeleccionada.value = fecha }
+                    ChipToggle(
+                        fecha,
+                        fechaMudanzaSeleccionada.value == fecha
+                    ) { fechaMudanzaSeleccionada.value = fecha }
                 }
             }
 
             Spacer(modifier = Modifier.height(16.dp))
 
             // 🔸 Servicios indispensables
-            Text("Servicios indispensables que buscas", style = MaterialTheme.typography.headlineLarge, color = MaterialTheme.colorScheme.primary)
-            FlowRow(horizontalArrangement = Arrangement.spacedBy(10.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            Text(
+                "Servicios indispensables que buscas",
+                style = MaterialTheme.typography.headlineLarge,
+                color = MaterialTheme.colorScheme.primary
+            )
+            FlowRow(
+                horizontalArrangement = Arrangement.spacedBy(10.dp),
+                verticalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
                 serviciosDisponibles.forEach { servicio ->
                     val selected = serviciosSeleccionados.contains(servicio)
                     ChipToggle(servicio, selected) {
@@ -695,11 +871,66 @@ fun PerfilEditarScreenBuscoLugar(
 
             // 🔸 Botón Guardar
             Button(
-                onClick = { onBackClick() },
+                onClick = {
+                    if (userData == null) {
+                        Toast.makeText(context, "No se pudo obtener la información del usuario", Toast.LENGTH_SHORT).show()
+                        return@Button
+                    }
+
+                    isSaving = true
+                    val userId = userData.id
+
+                    viewModel.setUserId(userId)
+                    viewModel.actualizarDescripcionLibre(descripcion)
+                    viewModel.actualizarBarrio(zonaSeleccionada.value) // Usar la zona seleccionada
+                    viewModel.actualizarIdioma(idioma)
+                    viewModel.actualizarTelefono(telefono)
+                    viewModel.actualizarPresupuesto(presupuesto.toDoubleOrNull())
+
+                    viewModel.actualizarGenero(generoSeleccionado.value)
+                    viewModel.actualizarFuma(fuma.value)
+                    viewModel.actualizarMascota(mascota.value)
+                    viewModel.actualizarAlergico(alergico.value, if (alergico.value) detalleAlergia else null)
+                    viewModel.actualizarTiempoEstancia(tiempoEstanciaSeleccionado.value)
+                    viewModel.actualizarPersonasConvivencia(personasSeleccionadas.value)
+                    viewModel.actualizarFechaMudanza(fechaMudanzaSeleccionada.value)
+
+                    val serviciosString = serviciosSeleccionados.joinToString(", ")
+                    viewModel.actualizarServiciosDeseados(serviciosString)
+
+                    viewModel.actualizarCampoFechaNacimiento(userProfile?.fechaNacimiento ?: "")
+
+                    // flow: (1) subir foto si cambió, (2) editar perfil BUSCO, (3) reload homeViewModel, (4) popBackStack()
+                    scope.launch {
+                        try {
+                            // 1️⃣ Subir nueva foto de perfil si cambió
+                            if (fotoPerfilActualizada && nuevaFotoPerfilUri != null) {
+                                viewModel.subirFotoPerfilAlFinal(
+                                    context = context,
+                                    onSuccess = { url ->
+                                        viewModel.actualizarFotoPerfil(url)
+                                        editarPerfilDespuesDeFoto(userId)
+                                    },
+                                    onError = { msg ->
+                                        isSaving = false
+                                        Toast.makeText(context, "Error al subir foto: $msg", Toast.LENGTH_LONG).show()
+                                    }
+                                )
+                            } else {
+                                editarPerfilDespuesDeFoto(userId)
+                            }
+                        } catch (e: Exception) {
+                            isSaving = false
+                            Toast.makeText(context, "Error inesperado: ${e.message}", Toast.LENGTH_LONG).show()
+                            Log.e("PerfilEditarBusco", "Stack: ${e.stackTraceToString()}")
+                        }
+                    }
+                },
                 modifier = Modifier.fillMaxWidth().height(55.dp),
                 shape = RoundedCornerShape(50)
             ) {
-                Text("GUARDAR", style = MaterialTheme.typography.displaySmall)
+                if (isSaving) CircularProgressIndicator(color = Color.White, strokeWidth = 2.dp)
+                else Text("GUARDAR", style = MaterialTheme.typography.displaySmall)
             }
 
             Spacer(modifier = Modifier.height(50.dp))
@@ -713,7 +944,11 @@ fun ChipToggle(text: String, selected: Boolean, onClick: () -> Unit) {
     Box(
         modifier = Modifier
             .clip(RoundedCornerShape(50))
-            .border(2.dp, if (selected) MaterialTheme.colorScheme.primary else Color.Gray, RoundedCornerShape(50))
+            .border(
+                2.dp,
+                if (selected) MaterialTheme.colorScheme.primary else Color.Gray,
+                RoundedCornerShape(50)
+            )
             .background(if (selected) MaterialTheme.colorScheme.primary.copy(alpha = 0.2f) else Color.White)
             .clickable { onClick() }
             .padding(horizontal = 14.dp, vertical = 8.dp)
