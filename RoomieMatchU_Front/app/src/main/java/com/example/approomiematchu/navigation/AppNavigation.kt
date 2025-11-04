@@ -17,16 +17,18 @@ import com.example.approomiematchu.ui.DescriptionTengoCasaScreen
 import com.example.approomiematchu.ui.HomeScreen
 import com.example.approomiematchu.ui.authentication.*
 import com.example.approomiematchu.ui.LandingScreen
-import com.example.approomiematchu.ui.PerfilBuscoLugarScreen
-import com.example.approomiematchu.ui.PerfilEditarScreenBuscoLugar
-import com.example.approomiematchu.ui.PerfilEditarScreenTengoLugar
-import com.example.approomiematchu.ui.PerfilTengoLugarScreen
+import com.example.approomiematchu.ui.profile.PerfilBuscoLugarScreen
+import com.example.approomiematchu.ui.profile.PerfilEditarScreenBuscoLugar
+import com.example.approomiematchu.ui.profile.PerfilEditarScreenTengoLugar
+import com.example.approomiematchu.ui.profile.PerfilTengoLugarScreen
 import com.example.approomiematchu.ui.ProfileScreen
-import com.example.approomiematchu.ui.home.HomeViewModel
-import com.example.approomiematchu.ui.home.HomeViewModelFactory
-import com.example.approomiematchu.ui.profileconfig.*
-import com.example.approomiematchu.ui.profileconfig.presentation.PerfilCuestionarioViewModel
-import com.example.approomiematchu.ui.profileconfig.presentation.PerfilCuestionarioViewModelFactory
+import com.example.approomiematchu.viewmodel.HomeViewModel
+import com.example.approomiematchu.viewmodel.HomeViewModelFactory
+import com.example.approomiematchu.ui.profileform.*
+import com.example.approomiematchu.viewmodel.AuthViewModel
+import com.example.approomiematchu.viewmodel.PasswordResetViewModel
+import com.example.approomiematchu.viewmodel.PerfilCuestionarioViewModel
+import com.example.approomiematchu.viewmodel.PerfilCuestionarioViewModelFactory
 
 @Composable
 fun AppNavigation(modifier: Modifier = Modifier) {

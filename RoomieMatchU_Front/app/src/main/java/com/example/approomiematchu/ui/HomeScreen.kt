@@ -16,15 +16,14 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import com.example.approomiematchu.R
 import com.example.approomiematchu.navigation.AppScreens
 import com.example.approomiematchu.navigation.NavigationUtils
-import com.example.approomiematchu.ui.home.HomeViewModel
-import com.example.approomiematchu.ui.profileconfig.presentation.TipoPerfil
+import com.example.approomiematchu.viewmodel.HomeViewModel
+import com.example.approomiematchu.ui.profileform.presentation.TipoPerfil
 import com.example.approomiematchu.ui.theme.RoomieMatchUTheme
 
 @Composable

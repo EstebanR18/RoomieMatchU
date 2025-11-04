@@ -1,4 +1,4 @@
-package com.example.approomiematchu.ui.profileconfig.presentation
+package com.example.approomiematchu.ui.profileform.presentation
 
 data class PerfilState(
     val userId: Long = 0L,

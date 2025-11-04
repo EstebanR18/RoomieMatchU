@@ -1,9 +1,6 @@
-package com.example.approomiematchu.ui.profileconfig
+package com.example.approomiematchu.ui.profileform
 
 import android.net.Uri
-import android.widget.Toast
-import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -48,17 +45,15 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
 import androidx.navigation.NavController
 import coil3.compose.AsyncImage
-import coil3.compose.rememberAsyncImagePainter
 import coil3.request.ImageRequest
 import coil3.request.crossfade
 import com.example.approomiematchu.R
 import com.example.approomiematchu.navigation.NavigationUtils
-import com.example.approomiematchu.ui.profileconfig.presentation.PerfilCuestionarioViewModel
+import com.example.approomiematchu.viewmodel.PerfilCuestionarioViewModel
 import com.example.approomiematchu.ui.theme.AppTypography
 import com.example.approomiematchu.utils.RequestImagePermissions
 import com.example.approomiematchu.utils.createTempImageFile
 import com.example.approomiematchu.utils.rememberAdvancedImagePicker
-import com.example.approomiematchu.utils.rememberImagePicker
 
 @Composable
 fun CuestionarioFotoPerfilScreen(

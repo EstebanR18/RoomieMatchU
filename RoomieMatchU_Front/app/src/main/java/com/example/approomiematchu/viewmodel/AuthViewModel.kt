@@ -1,5 +1,6 @@
-package com.example.approomiematchu.ui.authentication
+package com.example.approomiematchu.viewmodel
 
+import android.util.Patterns
 import androidx.compose.runtime.mutableStateOf
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -97,7 +98,7 @@ class AuthViewModel(
             emailValue.isEmpty() ->
                 errorMessage.value = "El correo es obligatorio"
 
-            !android.util.Patterns.EMAIL_ADDRESS.matcher(emailValue).matches() ->
+            !Patterns.EMAIL_ADDRESS.matcher(emailValue).matches() ->
                 errorMessage.value = "El correo no es válido"
 
             !passwordRegex.matches(passwordValue) ->

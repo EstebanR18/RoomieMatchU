@@ -1,4 +1,4 @@
-package com.example.approomiematchu.ui.profileconfig.presentation
+package com.example.approomiematchu.viewmodel
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider

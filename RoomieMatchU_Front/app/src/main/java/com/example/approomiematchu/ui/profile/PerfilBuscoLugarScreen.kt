@@ -1,4 +1,4 @@
-package com.example.approomiematchu.ui
+package com.example.approomiematchu.ui.profile
 
 import android.net.Uri
 import android.util.Log
@@ -63,9 +63,9 @@ import com.example.approomiematchu.data.remote.RetrofitClient
 import com.example.approomiematchu.data.remote.dto.PerfilResponse
 import com.example.approomiematchu.data.remote.dto.UserResponse
 import com.example.approomiematchu.navigation.AppScreens
-import com.example.approomiematchu.ui.home.HomeViewModel
-import com.example.approomiematchu.ui.profileconfig.presentation.PerfilCuestionarioViewModel
-import com.example.approomiematchu.ui.profileconfig.presentation.PerfilCuestionarioViewModelFactory
+import com.example.approomiematchu.viewmodel.HomeViewModel
+import com.example.approomiematchu.viewmodel.PerfilCuestionarioViewModel
+import com.example.approomiematchu.viewmodel.PerfilCuestionarioViewModelFactory
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.Calendar

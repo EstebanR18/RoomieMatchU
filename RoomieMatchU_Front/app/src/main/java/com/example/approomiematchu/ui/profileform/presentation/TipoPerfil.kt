@@ -1,4 +1,4 @@
-package com.example.approomiematchu.ui.profileconfig.presentation
+package com.example.approomiematchu.ui.profileform.presentation
 
 enum class TipoPerfil {
     BUSCO_LUGAR,

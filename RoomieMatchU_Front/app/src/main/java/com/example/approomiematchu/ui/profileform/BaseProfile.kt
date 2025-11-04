@@ -1,4 +1,4 @@
-package com.example.approomiematchu.ui.profileconfig
+package com.example.approomiematchu.ui.profileform
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image

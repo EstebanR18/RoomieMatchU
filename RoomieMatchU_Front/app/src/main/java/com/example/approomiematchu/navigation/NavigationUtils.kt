@@ -1,7 +1,7 @@
 package com.example.approomiematchu.navigation
 
 import androidx.navigation.NavController
-import com.example.approomiematchu.ui.profileconfig.presentation.TipoPerfil
+import com.example.approomiematchu.ui.profileform.presentation.TipoPerfil
 
 object NavigationUtils {
 

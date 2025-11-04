@@ -1,4 +1,4 @@
-package com.example.approomiematchu.ui.home
+package com.example.approomiematchu.viewmodel
 
 import android.util.Log
 import androidx.lifecycle.ViewModel
@@ -8,7 +8,7 @@ import com.example.approomiematchu.data.remote.api.ApiService
 import com.example.approomiematchu.data.remote.dto.PerfilResponse
 import com.example.approomiematchu.data.remote.dto.UserResponse
 import com.example.approomiematchu.data.repository.UserRepository
-import com.example.approomiematchu.ui.profileconfig.presentation.TipoPerfil
+import com.example.approomiematchu.ui.profileform.presentation.TipoPerfil
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow

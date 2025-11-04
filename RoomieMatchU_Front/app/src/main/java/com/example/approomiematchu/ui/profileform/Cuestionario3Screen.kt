@@ -1,4 +1,4 @@
-package com.example.approomiematchu.ui.profileconfig
+package com.example.approomiematchu.ui.profileform
 
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
@@ -24,13 +24,11 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import com.example.approomiematchu.navigation.NavigationUtils
-import com.example.approomiematchu.ui.profileconfig.presentation.PerfilCuestionarioViewModel
-import com.example.approomiematchu.ui.profileconfig.presentation.TipoPerfil
-import com.example.approomiematchu.ui.theme.RoomieMatchUTheme
+import com.example.approomiematchu.viewmodel.PerfilCuestionarioViewModel
+import com.example.approomiematchu.ui.profileform.presentation.TipoPerfil
 
 @Composable
 fun Cuestionario3Screen(

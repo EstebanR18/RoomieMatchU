@@ -1,4 +1,4 @@
-package com.example.approomiematchu.ui.authentication
+package com.example.approomiematchu.viewmodel
 
 import androidx.compose.runtime.mutableStateOf
 import androidx.lifecycle.ViewModel
@@ -104,4 +104,3 @@ class PasswordResetViewModel(
     }
 
 }
-

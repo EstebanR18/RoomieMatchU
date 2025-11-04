@@ -1,4 +1,4 @@
-package com.example.approomiematchu.ui.profileconfig
+package com.example.approomiematchu.ui.profileform
 
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.*
@@ -19,12 +19,11 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.style.TextAlign
 import com.example.approomiematchu.R
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.navigation.NavController
 import com.example.approomiematchu.navigation.NavigationUtils
-import com.example.approomiematchu.ui.profileconfig.presentation.PerfilCuestionarioViewModel
-import com.example.approomiematchu.ui.profileconfig.presentation.TipoPerfil
-import com.example.approomiematchu.ui.theme.RoomieMatchUTheme
+import com.example.approomiematchu.viewmodel.PerfilCuestionarioViewModel
+import com.example.approomiematchu.ui.profileform.presentation.TipoPerfil
+
 @Composable
 fun CuestionarioRolScreen(
     navController: NavController,

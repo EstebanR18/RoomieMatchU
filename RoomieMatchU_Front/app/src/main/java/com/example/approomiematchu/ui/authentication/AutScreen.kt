@@ -54,6 +54,7 @@ import androidx.navigation.NavController
 import com.example.approomiematchu.R
 import com.example.approomiematchu.navigation.AppScreens
 import com.example.approomiematchu.ui.theme.AppTypography
+import com.example.approomiematchu.viewmodel.AuthViewModel
 
 @Composable
 fun AuthScreen(initialIsLogin: Boolean = true, navController: NavController, authViewModel: AuthViewModel) {

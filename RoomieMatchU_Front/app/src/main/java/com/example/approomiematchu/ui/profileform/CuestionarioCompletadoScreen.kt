@@ -1,4 +1,4 @@
-package com.example.approomiematchu.ui.profileconfig
+package com.example.approomiematchu.ui.profileform
 
 import android.content.Context
 import android.util.Log
@@ -37,8 +37,8 @@ import androidx.navigation.NavController
 import com.example.approomiematchu.R
 import com.example.approomiematchu.navigation.AppScreens
 import com.example.approomiematchu.navigation.NavigationUtils
-import com.example.approomiematchu.ui.profileconfig.presentation.PerfilCuestionarioViewModel
-import com.example.approomiematchu.ui.profileconfig.presentation.TipoPerfil
+import com.example.approomiematchu.viewmodel.PerfilCuestionarioViewModel
+import com.example.approomiematchu.ui.profileform.presentation.TipoPerfil
 import com.example.approomiematchu.ui.theme.AppTypography
 import com.example.approomiematchu.utils.uriToFile
 import kotlinx.coroutines.launch

@@ -1,4 +1,4 @@
-package com.example.approomiematchu.ui.profileconfig.presentation
+package com.example.approomiematchu.viewmodel
 
 import android.content.Context
 import android.net.Uri
@@ -9,6 +9,8 @@ import com.example.approomiematchu.data.remote.api.ApiService
 import com.example.approomiematchu.data.remote.dto.PerfilBuscoLugarRequest
 import com.example.approomiematchu.data.remote.dto.PerfilResponse
 import com.example.approomiematchu.data.remote.dto.PerfilTengoLugarRequest
+import com.example.approomiematchu.ui.profileform.presentation.PerfilState
+import com.example.approomiematchu.ui.profileform.presentation.TipoPerfil
 import com.example.approomiematchu.utils.uriToFile
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -16,7 +18,7 @@ import kotlinx.coroutines.launch
 import okhttp3.MediaType.Companion.toMediaTypeOrNull
 import okhttp3.MultipartBody
 import okhttp3.RequestBody.Companion.asRequestBody
-
+import java.io.File
 
 class PerfilCuestionarioViewModel(
     private val api: ApiService
@@ -293,7 +295,7 @@ class PerfilCuestionarioViewModel(
     }
 
 
-    fun subirFotosResidencia(files: List<java.io.File>, onSuccess: (List<String>) -> Unit, onError: (String) -> Unit) {
+    fun subirFotosResidencia(files: List<File>, onSuccess: (List<String>) -> Unit, onError: (String) -> Unit) {
         viewModelScope.launch {
             try {
                 _state.value = _state.value.copy(isLoading = true)

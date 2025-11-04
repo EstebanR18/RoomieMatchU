@@ -8,7 +8,7 @@ import com.example.approomiematchu.data.remote.dto.PerfilResponse
 import com.example.approomiematchu.data.remote.dto.RegisterRequest
 import com.example.approomiematchu.data.remote.dto.RegisterResponse
 import com.example.approomiematchu.data.remote.dto.UserResponse
-import com.example.approomiematchu.ui.profileconfig.presentation.TipoPerfil
+import com.example.approomiematchu.ui.profileform.presentation.TipoPerfil
 
 class UserRepository(
     private val api: ApiService = RetrofitClient.instance

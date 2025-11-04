@@ -1,4 +1,4 @@
-package com.example.approomiematchu.ui.profileconfig
+package com.example.approomiematchu.ui.profileform
 
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
@@ -21,13 +21,10 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import com.example.approomiematchu.navigation.NavigationUtils
-import com.example.approomiematchu.ui.profileconfig.presentation.PerfilCuestionarioViewModel
-import com.example.approomiematchu.ui.profileconfig.presentation.TipoPerfil
-import com.example.approomiematchu.ui.theme.RoomieMatchUTheme
+import com.example.approomiematchu.viewmodel.PerfilCuestionarioViewModel
 
 @Composable
 fun CuestionarioTengoCasaScreen(
