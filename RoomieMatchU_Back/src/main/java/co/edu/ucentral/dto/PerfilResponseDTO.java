@@ -8,6 +8,8 @@ import java.util.List;
 @Data
 public class PerfilResponseDTO {
     public Long id;
+    public Long userId;
+    public String usuario;
     public String tipo;
     public String fotoPerfil;
     public LocalDate fechaNacimiento;
