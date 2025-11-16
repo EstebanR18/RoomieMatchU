@@ -25,6 +25,7 @@ import com.example.approomiematchu.ui.ProfileScreen
 import com.example.approomiematchu.viewmodel.HomeViewModel
 import com.example.approomiematchu.viewmodel.HomeViewModelFactory
 import com.example.approomiematchu.ui.profileform.*
+import com.example.approomiematchu.ui.state.PerfilUIState
 import com.example.approomiematchu.viewmodel.AuthViewModel
 import com.example.approomiematchu.viewmodel.MatchViewModel
 import com.example.approomiematchu.viewmodel.MatchViewModelFactory
@@ -203,19 +204,19 @@ fun AppNavigation(modifier: Modifier = Modifier) {
 
         // ---------- DESCRIPCIONES ----------
         composable(AppScreens.DescripcionBuscoCasa.route) {
-            val perfilActual by matchViewModel.perfilActual.collectAsState()
+            val matchState by matchViewModel.uiState.collectAsState()
 
             DescriptionBuscoCasaScreen(
-                perfil = perfilActual,
+                perfil = (matchState as? PerfilUIState.Data)?.perfil,
                 onBackClick = { navController.popBackStack() }
             )
         }
 
         composable(AppScreens.DescripcionTengoCasa.route) {
-            val perfilActual by matchViewModel.perfilActual.collectAsState()
+            val matchState by matchViewModel.uiState.collectAsState()
 
             DescriptionTengoCasaScreen(
-                perfil = perfilActual,
+                perfil = (matchState as? PerfilUIState.Data)?.perfil,
                 onBackClick = { navController.popBackStack() }
             )
         }

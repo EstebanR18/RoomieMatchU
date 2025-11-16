@@ -4,6 +4,8 @@ import com.google.gson.annotations.SerializedName
 
 data class PerfilResponse(
     @SerializedName("id") val id: Long?,
+    @SerializedName("userId") val userId: Long?,
+    @SerializedName("usuario") val usuario: String?,
     @SerializedName("tipo") val tipo: String?, // "BUSCO_LUGAR" o "TENGO_LUGAR"
     @SerializedName("fotoPerfil") val fotoPerfil: String?,
     @SerializedName("fechaNacimiento") val fechaNacimiento: String?,

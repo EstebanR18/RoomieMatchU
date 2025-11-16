@@ -1,47 +1,65 @@
 package com.example.approomiematchu.viewmodel
 
+import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.approomiematchu.data.remote.api.ApiService
 import com.example.approomiematchu.data.remote.dto.PerfilResponse
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.SharingStarted
-import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.combine
-import kotlinx.coroutines.flow.stateIn
+import com.example.approomiematchu.ui.state.PerfilUIState
+import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 
 class MatchViewModel(private val api: ApiService) : ViewModel() {
 
     private val _perfiles = MutableStateFlow<List<PerfilResponse>>(emptyList())
-    val perfiles: StateFlow<List<PerfilResponse>> = _perfiles
-
     private val _index = MutableStateFlow(0)
-    val index: StateFlow<Int> = _index
 
-    val perfilActual: StateFlow<PerfilResponse?> =
+    // ESTADO UNIFICADO PARA ANIMAR
+    val uiState: StateFlow<PerfilUIState> =
         combine(_perfiles, _index) { lista, idx ->
-            lista.getOrNull(idx)
-        }.stateIn(viewModelScope, SharingStarted.Eagerly, null)
+            when {
+                lista.isEmpty() -> PerfilUIState.Empty
+                idx < 0 || idx >= lista.size -> PerfilUIState.Empty
+                else -> PerfilUIState.Data(lista[idx])
+            }
+        }.stateIn(viewModelScope, SharingStarted.Eagerly, PerfilUIState.Loading)
 
     fun cargarPerfiles(userId: Long) {
         viewModelScope.launch {
+            Log.d("MATCH", "Cargando perfiles para userId=$userId")
+
             val result = api.obtenerSugerencias(userId)
+
+            Log.d("MATCH", "Perfiles recibidos=${result.size}")
+
             _perfiles.value = result
+
             _index.value = 0
         }
     }
 
-    fun like() { siguiente() }
-    fun rechazar() { siguiente() }
+    fun like() = siguiente()
+    fun rechazar() = siguiente()
 
     fun siguiente() {
         val next = _index.value + 1
-        if (next < _perfiles.value.size) _index.value = next
+        val size = _perfiles.value.size
+
+        Log.d("MATCH", "next=$next size=$size")
+
+        if (next < size) {
+            _index.value = next
+            Log.d("MATCH", "Mostrando perfil idx=$next id=${_perfiles.value[next].id}")
+        } else {
+            Log.d("MATCH", "No hay más perfiles → estado EMPTY")
+            _index.value = size // fuerza estado vacío
+        }
     }
 
     fun atras() {
         val prev = _index.value - 1
-        if (prev >= 0) _index.value = prev
+        if (prev >= 0) {
+            _index.value = prev
+        }
     }
 }
