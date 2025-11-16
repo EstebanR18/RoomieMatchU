@@ -77,4 +77,9 @@ interface ApiService {
         @Query("urls") urls: String // Cambia @Body por @Query
     ): Response<ResponseBody>
 
+    @GET("sugerencias/{userId}")
+    suspend fun obtenerSugerencias(
+        @Path("userId") userId: Long
+    ): List<PerfilResponse>
+
 }

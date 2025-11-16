@@ -63,9 +63,7 @@ object NavigationUtils {
             TipoPerfil.TENGO_LUGAR -> AppScreens.DescripcionTengoCasa.route
             else -> AppScreens.HomeScreen.route
         }
-        navController.navigate(route) {
-            launchSingleTop = true
-        }
+        navController.navigate(route)
     }
 
     /**

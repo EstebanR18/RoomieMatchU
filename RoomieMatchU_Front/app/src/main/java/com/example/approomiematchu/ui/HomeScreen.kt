@@ -1,13 +1,39 @@
 package com.example.approomiematchu.ui
 
-import androidx.compose.foundation.*
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.*
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.material.icons.filled.Person
+import androidx.compose.material3.Button
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -18,23 +44,30 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.zIndex
 import androidx.navigation.NavController
+import coil3.compose.AsyncImage
 import com.example.approomiematchu.R
+import com.example.approomiematchu.data.remote.dto.PerfilResponse
 import com.example.approomiematchu.navigation.AppScreens
 import com.example.approomiematchu.navigation.NavigationUtils
-import com.example.approomiematchu.viewmodel.HomeViewModel
 import com.example.approomiematchu.ui.profileform.presentation.TipoPerfil
 import com.example.approomiematchu.ui.theme.RoomieMatchUTheme
+import com.example.approomiematchu.util.calculateAgeFromIso
+import com.example.approomiematchu.viewmodel.HomeViewModel
+import com.example.approomiematchu.viewmodel.MatchViewModel
 
 @Composable
 fun HomeScreen(
     navController: NavController,
     homeViewModel: HomeViewModel,
+    matchViewModel: MatchViewModel,
     userId: Long?
-){
+) {
 
     val homeState by homeViewModel.uiState.collectAsState()
     val userProfile by homeViewModel.userProfile.collectAsState()
+    val perfilActual by matchViewModel.perfilActual.collectAsState()
 
     // Si no hay userId, redirigir al login
     if (userId == null) {
@@ -91,21 +124,33 @@ fun HomeScreen(
     // Mostrar el home según el tipo de perfil
     when (homeState.tipoPerfil) {
         TipoPerfil.BUSCO_LUGAR -> HomeBuscoCasaScreen(
+            perfil = perfilActual,
             onDescriptionClick = {
                 NavigationUtils.navigateToDescription(navController, homeState.tipoPerfil)
             },
             onProfileClick = {
                 NavigationUtils.navigateToProfile(navController, homeState.tipoPerfil)
-            }
+            },
+            onNext = { matchViewModel.siguiente() },
+            onBack = { matchViewModel.atras() },
+            onLike = { matchViewModel.like() },
+            onReject = { matchViewModel.rechazar() }
         )
+
         TipoPerfil.TENGO_LUGAR -> HomeTengoCasaScreen(
+            perfil = perfilActual,
             onDescriptionClick = {
                 NavigationUtils.navigateToDescription(navController, homeState.tipoPerfil)
             },
             onProfileClick = {
                 NavigationUtils.navigateToProfile(navController, homeState.tipoPerfil)
-            }
+            },
+            onNext = { matchViewModel.siguiente() },
+            onBack = { matchViewModel.atras() },
+            onLike = { matchViewModel.like() },
+            onReject = { matchViewModel.rechazar() }
         )
+
         else -> {
             // Si no tiene perfil, redirigir al cuestionario
             LaunchedEffect(Unit) {
@@ -126,7 +171,510 @@ fun HomeScreen(
     }
 }
 
-/* -------------------- COMPONENTES REUTILIZABLES -------------------- */
+/* -------------------- TENGO CASA - PANTALLA PRINCIPAL -------------------- */
+@Composable
+fun HomeTengoCasaScreen(
+    perfil: PerfilResponse?,
+    onDescriptionClick: () -> Unit,
+    onProfileClick: () -> Unit,
+    onNext: () -> Unit,
+    onBack: () -> Unit,
+    onLike: () -> Unit,
+    onReject: () -> Unit
+) {
+
+    if (perfil == null) {
+        NoMoreProfilesScreen()
+        return
+    }
+
+    val edad = calculateAgeFromIso(perfil.fechaNacimiento)
+
+    RoomieMatchUTheme {
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(Color(0xFFD2D0D0))
+        ) {
+            // Contenido principal centrado verticalmente
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(horizontal = 16.dp)
+                    .padding(bottom = 16.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.Center // 🔹 CENTRA verticalmente
+            ) {
+                TopBar(onProfileClick = onProfileClick)
+
+                // 🔹 Imagen principal (carrusel adaptativo)
+                val screenHeight = LocalConfiguration.current.screenHeightDp.dp
+                val imageHeight = (screenHeight * 0.55f).coerceIn(350.dp, 600.dp)
+
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 8.dp)
+                        .clip(RoundedCornerShape(30.dp))
+                        .background(MaterialTheme.colorScheme.surface)
+                        .border(
+                            width = 4.dp,
+                            color = MaterialTheme.colorScheme.primary,
+                            shape = RoundedCornerShape(30.dp)
+                        )
+                ) {
+                    Column(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        // CARRUSEL → solo fotoPerfil
+                        ImageCarouselUrl(
+                            images = listOfNotNull(perfil.fotoPerfil),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(imageHeight)
+                        )
+
+                        // Información debajo del carrusel
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .background(Color(0xFFD2D0D0))
+                                .padding(16.dp)
+                                .clickable { onDescriptionClick() }
+                        ) {
+                            Text(
+                                "${perfil.genero ?: "Usuario"}, ${edad ?: "?"}",
+                                style = MaterialTheme.typography.headlineLarge,
+                                color = MaterialTheme.colorScheme.primary
+                            )
+                            Text(
+                                perfil.barrio ?: "Barrio desconocido",
+                                style = MaterialTheme.typography.headlineMedium,
+                                color = MaterialTheme.colorScheme.primary
+                            )
+                            Text(
+                                perfil.descripcionLibre ?: "",
+                                style = MaterialTheme.typography.bodyLarge,
+                                color = MaterialTheme.colorScheme.primary
+                            )
+                        }
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(40.dp))
+
+                BottomControls(onBack, onLike, onReject)
+            }
+        }
+    }
+}
+
+/* -------------------- TENGO CASA - DESCRIPCIÓN -------------------- */
+@Composable
+fun DescriptionTengoCasaScreen(
+    perfil: PerfilResponse?,
+    onBackClick: () -> Unit
+) {
+    RoomieMatchUTheme {
+
+        val edad = calculateAgeFromIso(perfil?.fechaNacimiento)
+
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(Color(0xFFD2D0D0))
+        ) {
+            Spacer(Modifier.height(24.dp))
+
+            DetailHeader(onBackClick = onBackClick)
+
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .verticalScroll(rememberScrollState())
+                    .padding(
+                        top = 100.dp,
+                        start = 16.dp,
+                        end = 16.dp,
+                        bottom = 16.dp
+                    )
+                    .zIndex(1f),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+
+                val screenHeight = LocalConfiguration.current.screenHeightDp.dp
+                val imageHeight = (screenHeight * 0.45f).coerceIn(300.dp, 500.dp)
+
+                // CARD PRINCIPAL
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(30.dp))
+                        .background(Color(0xFFD2D0D0))
+                        .border(3.dp, MaterialTheme.colorScheme.primary, RoundedCornerShape(30.dp))
+                ) {
+                    Column {
+
+                        // Carrusel (NO scrollea)
+                        ImageCarouselUrl(
+                            images = listOfNotNull(perfil?.fotoPerfil),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(imageHeight)
+                                .clip(RoundedCornerShape(topStart = 30.dp, topEnd = 30.dp))
+                        )
+
+                        // CONTENIDO SCROLLEABLE
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .background(Color(0xFFD2D0D0))
+                                .padding(20.dp)
+                        ) {
+
+                            Text(
+                                "${perfil?.genero ?: "-"}, ${edad ?: "--"}",
+                                style = MaterialTheme.typography.headlineLarge,
+                                color = MaterialTheme.colorScheme.primary
+                            )
+
+                            Spacer(Modifier.height(10.dp))
+
+                            Text(
+                                perfil?.barrio ?: "-",
+                                style = MaterialTheme.typography.headlineLarge,
+                                color = MaterialTheme.colorScheme.primary
+                            )
+
+                            Spacer(Modifier.height(10.dp))
+
+                            // PREFERENCIAS
+                            ChipSection(
+                                title = "Preferencias",
+                                items = listOf(
+                                    perfil?.presupuesto?.let { "Presupuesto: $$it" },
+                                    perfil?.tipoHabitacion,
+                                    perfil?.tiempoEstancia,
+                                    perfil?.fechaMudanza?.let { "Mudanza: $it" }
+                                )
+                            )
+
+                            // SERVICIOS DESEADOS → A CHIPS
+                            ChipSection(
+                                title = "Servicios deseados",
+                                items = perfil?.serviciosDeseados
+                                    ?.split(",")
+                                    ?.map { it.trim() }
+                                    ?: emptyList()
+                            )
+
+                            /*
+                            // HÁBITOS → CHIPS
+                            ChipSection(
+                                title = "Hábitos",
+                                items = perfil?.habitos
+                                    ?.split(",")
+                                    ?.map { it.trim() }
+                                    ?: emptyList()
+                            )
+                             */
+
+                            // OTROS
+                            ChipSection(
+                                title = "Otros",
+                                items = listOf(
+                                    if (perfil?.mascota == true) "Mascota" else "Sin mascota",
+                                    if (perfil?.fuma == true) "Fuma" else "No fuma",
+                                    if (perfil?.alergico == true) "Alergia: ${perfil.detalleAlergia}" else null
+                                )
+                            )
+
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+//* -------------------- BUSCO CASA - PANTALLA PRINCIPAL -------------------- */
+@Composable
+fun HomeBuscoCasaScreen(
+    perfil: PerfilResponse?,
+    onDescriptionClick: () -> Unit,
+    onProfileClick: () -> Unit,
+    onNext: () -> Unit,
+    onBack: () -> Unit,
+    onLike: () -> Unit,
+    onReject: () -> Unit
+) {
+
+    if (perfil == null) {
+        NoMoreProfilesScreen()
+        return
+    }
+
+    // Edad calculada
+    val edad = calculateAgeFromIso(perfil.fechaNacimiento)
+
+    RoomieMatchUTheme {
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(Color(0xFFD2D0D0))
+        ) {
+            // Contenido principal centrado verticalmente
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(horizontal = 16.dp)
+                    .padding(bottom = 16.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.Center // 🔹 Centrado verticalmente
+            ) {
+                TopBar(onProfileClick = onProfileClick)
+
+                // 🔹 Imagen principal (carrusel adaptativo)
+                val screenHeight = LocalConfiguration.current.screenHeightDp.dp
+                val imageHeight = (screenHeight * 0.55f).coerceIn(350.dp, 600.dp)
+
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 8.dp)
+                        .clip(RoundedCornerShape(30.dp))
+                        .background(Color(0xFFD2D0D0))
+                        .border(
+                            width = 4.dp,
+                            color = MaterialTheme.colorScheme.primary,
+                            shape = RoundedCornerShape(30.dp)
+                        )
+                ) {
+                    Column(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        // Carrusel
+                        ImageCarouselUrl(
+                            images = perfil.fotosResidenciaUrls ?: emptyList(),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(imageHeight)
+                                .clip(RoundedCornerShape(topStart = 26.dp, topEnd = 26.dp))
+                        )
+
+                        // 🔹 Información debajo del carrusel + foto de perfil
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .background(Color(0xFFD2D0D0))
+                                .padding(16.dp)
+                                .clickable { onDescriptionClick() }
+                        ) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                Column {
+                                    Text(
+                                        "${perfil.genero ?: "Usuario"}, ${edad ?: "?"}",
+                                        style = MaterialTheme.typography.headlineLarge,
+                                        color = MaterialTheme.colorScheme.primary
+                                    )
+                                    Text(
+                                        perfil.barrio ?: "Barrio desconocido",
+                                        style = MaterialTheme.typography.headlineMedium,
+                                        color = MaterialTheme.colorScheme.primary
+                                    )
+                                    Text(
+                                        perfil.descripcionLibre ?: "",
+                                        style = MaterialTheme.typography.bodyLarge,
+                                        color = MaterialTheme.colorScheme.primary
+                                    )
+                                }
+
+                                // FOTO DE PERFIL
+                                AsyncImage(
+                                    model = perfil.fotoPerfil,
+                                    contentDescription = null,
+                                    modifier = Modifier
+                                        .size(90.dp)
+                                        .clip(CircleShape)
+                                        .border(
+                                            3.dp,
+                                            MaterialTheme.colorScheme.primary,
+                                            CircleShape
+                                        ),
+                                    contentScale = ContentScale.Crop
+                                )
+                            }
+                        }
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(40.dp))
+
+                BottomControls(onBack, onLike, onReject)
+            }
+        }
+    }
+}
+
+/* -------------------- BUSCO CASA - DESCRIPCIÓN -------------------- */
+@Composable
+fun DescriptionBuscoCasaScreen(
+    perfil: PerfilResponse?,
+    onBackClick: () -> Unit
+) {
+    RoomieMatchUTheme {
+
+        val edad = calculateAgeFromIso(perfil?.fechaNacimiento)
+        val imageUrls = perfil?.fotosResidenciaUrls ?: listOfNotNull(perfil?.fotoPerfil)
+
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(Color(0xFFD2D0D0))
+        ) {
+
+            Spacer(Modifier.height(24.dp))
+
+            DetailHeader(onBackClick = onBackClick)
+
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .verticalScroll(rememberScrollState())
+                    .padding(
+                        top = 100.dp,
+                        start = 16.dp,
+                        end = 16.dp,
+                        bottom = 16.dp
+                    ),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+
+                // CARD
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(30.dp))
+                        .background(Color(0xFFD2D0D0))
+                        .border(3.dp, MaterialTheme.colorScheme.primary, RoundedCornerShape(30.dp))
+                        .zIndex(1f)
+                ) {
+
+                    Column {
+
+                        // 🔵 Carrusel NO scrollea
+                        ImageCarouselUrl(
+                            images = imageUrls,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(340.dp)
+                                .clip(RoundedCornerShape(topStart = 30.dp, topEnd = 30.dp))
+                        )
+
+                        // Contenido SCROLLEABLE
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .background(Color(0xFFD2D0D0))
+                                .padding(20.dp)
+                        ) {
+
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                AsyncImage(
+                                    model = perfil?.fotoPerfil,
+                                    contentDescription = null,
+                                    modifier = Modifier
+                                        .size(80.dp)
+                                        .clip(CircleShape)
+                                        .border(
+                                            3.dp,
+                                            MaterialTheme.colorScheme.primary,
+                                            CircleShape
+                                        ),
+                                    contentScale = ContentScale.Crop
+                                )
+
+                                Spacer(Modifier.width(16.dp))
+
+                                Column {
+                                    Text(
+                                        "${perfil?.genero ?: "-"}, ${edad ?: "--"}",
+                                        style = MaterialTheme.typography.headlineLarge,
+                                        color = MaterialTheme.colorScheme.primary
+                                    )
+                                    Text(
+                                        perfil?.barrio ?: "-",
+                                        style = MaterialTheme.typography.bodyLarge
+                                    )
+                                }
+                            }
+
+                            Spacer(Modifier.height(20.dp))
+
+                            // DETALLES DEL LUGAR
+                            ChipSection(
+                                title = "Detalles del lugar",
+                                items = listOf(
+                                    perfil?.arriendo?.let { "Arriendo: $$it" },
+                                    perfil?.cantidadHabitaciones?.let { "Habitaciones: $it" },
+                                    perfil?.maxRoomies?.let { "Máx. roomies: $it" }
+                                )
+                            )
+
+                            // REGLAS DE CONVIVENCIA → CHIPS
+                            ChipSection(
+                                title = "Reglas de convivencia",
+                                items = perfil?.reglasConvivencia
+                                    ?.split(",")
+                                    ?.map { it.trim() }
+                                    ?: emptyList()
+                            )
+
+                            // SERVICIOS INCLUIDOS → CHIPS
+                            ChipSection(
+                                title = "Servicios incluidos",
+                                items = perfil?.serviciosIncluidos
+                                    ?.split(",")
+                                    ?.map { it.trim() }
+                                    ?: emptyList()
+                            )
+
+                            /*
+                            // HÁBITOS PERSONAL → CHIPS
+                            ChipSection(
+                                title = "Hábitos",
+                                items = perfil?.habitos
+                                    ?.split(",")
+                                    ?.map { it.trim() }
+                                    ?: emptyList()
+                            )
+                             */
+
+                            // OTROS
+                            ChipSection(
+                                title = "Otros",
+                                items = listOf(
+                                    if (perfil?.mascota == true) "Mascota" else "Sin mascota",
+                                    if (perfil?.fuma == true) "Fuma" else "No fuma",
+                                    if (perfil?.alergico == true) "Alergia: ${perfil.detalleAlergia}" else null
+                                )
+                            )
+
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+/* ---------- Reutilizables ---------- */
 
 @Composable
 fun TopBar(onProfileClick: () -> Unit) {
@@ -159,28 +707,43 @@ fun TopBar(onProfileClick: () -> Unit) {
 }
 
 @Composable
-fun ImageCarousel(imageList: List<Int>, modifier: Modifier = Modifier) {
-    var selectedIndex by remember { mutableStateOf(0) }
+fun ImageCarouselUrl(
+    images: List<String>,
+    modifier: Modifier = Modifier
+) {
+    var index by remember { mutableStateOf(0) }
 
-    Box(modifier = modifier) {
-        Image(
-            painter = painterResource(id = imageList[selectedIndex]),
+    if (images.isEmpty()) {
+        Box(
+            modifier = modifier
+                .background(Color.LightGray)
+                .height(300.dp)
+                .fillMaxWidth(),
+            contentAlignment = Alignment.Center
+        ) {
+            Text("Sin fotos")
+        }
+        return
+    }
+
+    Box(modifier) {
+        AsyncImage(
+            model = images[index],
             contentDescription = null,
             modifier = Modifier
                 .fillMaxWidth()
                 .height(500.dp)
-                .clickable {
-                    selectedIndex = (selectedIndex + 1) % imageList.size
-                },
+                .clip(RoundedCornerShape(20.dp))
+                .clickable { index = (index + 1) % images.size },
             contentScale = ContentScale.Crop
         )
 
         Row(
-            Modifier
+            modifier = Modifier
                 .align(Alignment.TopCenter)
                 .padding(top = 8.dp)
         ) {
-            imageList.forEachIndexed { index, _ ->
+            images.forEachIndexed { i, _ ->
                 Box(
                     modifier = Modifier
                         .padding(horizontal = 2.dp)
@@ -188,7 +751,7 @@ fun ImageCarousel(imageList: List<Int>, modifier: Modifier = Modifier) {
                         .width(40.dp)
                         .clip(RoundedCornerShape(50))
                         .background(
-                            if (index == selectedIndex)
+                            if (i == index)
                                 MaterialTheme.colorScheme.primary
                             else
                                 MaterialTheme.colorScheme.surface
@@ -198,300 +761,13 @@ fun ImageCarousel(imageList: List<Int>, modifier: Modifier = Modifier) {
         }
     }
 }
-/* -------------------- TENGO CASA - PANTALLA PRINCIPAL -------------------- */
 @Composable
-fun HomeTengoCasaScreen(
-    onDescriptionClick: () -> Unit,
-    onProfileClick: () -> Unit
-) {
-    RoomieMatchUTheme {
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(Color(0xFFD2D0D0))
-        ) {
-            // Contenido principal centrado verticalmente
-            Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(horizontal = 16.dp)
-                    .padding(bottom = 16.dp),
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.Center // 🔹 CENTRA verticalmente todo
-            ) {
-                TopBar(onProfileClick = onProfileClick)
-
-                // 🔹 Imagen principal (carrusel adaptativo)
-                val screenHeight = LocalConfiguration.current.screenHeightDp.dp
-                val imageHeight = (screenHeight * 0.55f).coerceIn(350.dp, 600.dp)
-
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 8.dp)
-                        .clip(RoundedCornerShape(30.dp))
-                        .background(MaterialTheme.colorScheme.surface)
-                        .border(
-                            width = 4.dp,
-                            color = MaterialTheme.colorScheme.primary,
-                            shape = RoundedCornerShape(30.dp)
-                        )
-                ) {
-                    Column(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalAlignment = Alignment.CenterHorizontally
-                    ) {
-                        // Carrusel ocupa todo el recuadro
-                        ImageCarousel(
-                            imageList = listOf(
-                                R.drawable.imagen1,
-                                R.drawable.imagen2,
-                                R.drawable.imagen3
-                            ),
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height(imageHeight)
-                                .clip(RoundedCornerShape(topStart = 26.dp, topEnd = 26.dp))
-                        )
-
-                        // Información debajo del carrusel
-                        Column(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .background(MaterialTheme.colorScheme.background)
-                                .padding(16.dp)
-                                .clickable { onDescriptionClick() }
-                        ) {
-                            Text(
-                                "Laura Sofía, 21",
-                                style = MaterialTheme.typography.headlineMedium,
-                                color = MaterialTheme.colorScheme.primary
-                            )
-                            Text(
-                                "Kennedy",
-                                style = MaterialTheme.typography.bodyLarge,
-                                color = MaterialTheme.colorScheme.primary
-                            )
-                            Text(
-                                "Habitación individual",
-                                style = MaterialTheme.typography.bodyLarge,
-                                color = MaterialTheme.colorScheme.primary
-                            )
-                        }
-                    }
-                }
-
-                Spacer(modifier = Modifier.height(40.dp))
-
-                // 🔹 Botones inferiores dentro de la columna, centrados abajo
-                val screenWidth = LocalConfiguration.current.screenWidthDp.dp
-                val iconSize = (screenWidth * 0.15f).coerceIn(50.dp, 80.dp)
-
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(bottom = 8.dp),
-                    horizontalArrangement = Arrangement.SpaceEvenly,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Image(
-                        painter = painterResource(id = R.drawable.ic_atras),
-                        contentDescription = "Atrás",
-                        modifier = Modifier
-                            .size(iconSize)
-                            .clickable { /* acción atrás */ }
-                    )
-                    Image(
-                        painter = painterResource(id = R.drawable.ic_aceptar),
-                        contentDescription = "Aceptar",
-                        modifier = Modifier
-                            .size(iconSize)
-                            .clickable { /* acción aceptar */ }
-                    )
-                    Image(
-                        painter = painterResource(id = R.drawable.ic_rechazar),
-                        contentDescription = "Rechazar",
-                        modifier = Modifier
-                            .size(iconSize)
-                            .clickable { /* acción rechazar */ }
-                    )
-                }
-            }
-        }
-    }
-}
-
-
-/* -------------------- TENGO CASA - DESCRIPCIÓN -------------------- */
-@Composable
-fun DescriptionTengoCasaScreen(onBackClick: () -> Unit = {}) {
-    RoomieMatchUTheme {
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(Color(0xFFD2D0D0))
-        ) {
-            // Encabezado fijo superior
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .background(Color(0xFFD2D0D0))
-                    .padding(top = 24.dp, bottom = 12.dp)
-                    .align(Alignment.TopCenter),
-                contentAlignment = Alignment.Center
-            ) {
-                // Ícono de volver
-                Image(
-                    painter = painterResource(id = R.drawable.ic_atras_screens),
-                    contentDescription = "Volver",
-                    modifier = Modifier
-                        .size(50.dp)
-                        .align(Alignment.CenterStart)
-                        .clickable { onBackClick() }
-                        .padding(start = 16.dp)
-                )
-
-                // Texto centrado realmente
-                Text(
-                    text = "ROOMIE\nMATCH U",
-                    style = MaterialTheme.typography.displayLarge.copy(lineHeight = 21.sp),
-                    textAlign = TextAlign.Center,
-                    color = MaterialTheme.colorScheme.primary
-                )
-            }
-
-            // 🔹 Contenido con scroll
-            Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .verticalScroll(rememberScrollState())
-                    .padding(top = 100.dp, start = 24.dp, end = 24.dp, bottom = 24.dp),
-                horizontalAlignment = Alignment.CenterHorizontally
-            ) {
-
-                val screenHeight = LocalConfiguration.current.screenHeightDp.dp
-                val imageHeight = (screenHeight * 0.45f).coerceIn(300.dp, 500.dp)
-
-                // 🔹 Contenedor principal con bordes redondeados
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clip(RoundedCornerShape(30.dp))
-                        .background(MaterialTheme.colorScheme.surface)
-                        .border(3.dp, MaterialTheme.colorScheme.primary, RoundedCornerShape(30.dp))
-                ) {
-                    Column(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalAlignment = Alignment.CenterHorizontally
-                    ) {
-
-                        ImageCarousel(
-                            imageList = listOf(
-                                R.drawable.imagen1
-                            ),
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height(imageHeight * 0.85f) // 🔽 más bajo que el home
-                                .clip(RoundedCornerShape(topStart = 26.dp, topEnd = 26.dp))
-                        )
-
-                        Column(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .heightIn(max = 350.dp)
-                                .verticalScroll(rememberScrollState())
-                                .background(MaterialTheme.colorScheme.background, RoundedCornerShape(bottomStart = 26.dp, bottomEnd = 26.dp))
-                                .padding(20.dp)
-                        ) {
-                            Text(
-                                "Laura Sofía, 21",
-                                style = MaterialTheme.typography.displayLarge,
-                                color = MaterialTheme.colorScheme.primary
-                            )
-
-                            Spacer(modifier = Modifier.height(12.dp))
-
-                            Text(
-                                "Chapinero",
-                                style = MaterialTheme.typography.titleMedium,
-                                color = MaterialTheme.colorScheme.primary
-                            )
-
-                            Spacer(modifier = Modifier.height(20.dp))
-
-                            // 🔹 Estilo de vida
-                            SectionHeader("Estilo de vida")
-                            FlowRow(
-                                horizontalArrangement = Arrangement.spacedBy(10.dp),
-                                verticalArrangement = Arrangement.spacedBy(10.dp)
-                            ) {
-                                listOf(
-                                    "No fumo",
-                                    "Estoy dispuesto a vivir con mascotas",
-                                    "Sin alergias",
-                                    "Tengo mascotas"
-                                ).forEach { Chip(it) }
-                            }
-
-                            Spacer(modifier = Modifier.height(20.dp))
-
-                            // 🔹 Precio dispuesto a pagar
-                            SectionHeader("Precio dispuesto a pagar")
-                            Chip("$600.000")
-
-                            Spacer(modifier = Modifier.height(20.dp))
-
-                            // 🔹 Número de personas con las que estarías dispuesto a vivir
-                            SectionHeader("Número de personas con las que estarías dispuesto a vivir")
-                            Chip("3")
-
-                            Spacer(modifier = Modifier.height(20.dp))
-
-                            // 🔹 Servicios indispensables que buscas
-                            SectionHeader("Servicios indispensables que buscas")
-                            FlowRow(
-                                horizontalArrangement = Arrangement.spacedBy(10.dp),
-                                verticalArrangement = Arrangement.spacedBy(10.dp)
-                            ) {
-                                listOf(
-                                    "Internet",
-                                    "Amoblado",
-                                    "Lavadora",
-                                    "Baño Privado",
-                                    "Agua Caliente",
-                                    "Secadora"
-                                ).forEach { Chip(it) }
-                            }
-
-                            Spacer(modifier = Modifier.height(20.dp))
-
-                            // 🔹 Tipo de habitación
-                            SectionHeader("Tipo de habitación")
-                            Chip("Individual")
-
-                            Spacer(modifier = Modifier.height(20.dp))
-
-                            // 🔹 Fecha en la que necesitas mudarte
-                            SectionHeader("Fecha en la que necesitas mudarte")
-                            Chip("Inmediato")
-
-                        }
-                    }
-                }
-            }
-        }
-    }
-}
-
-/* ---------- Reutilizables ---------- */
-
-@Composable
-fun SectionHeader(text: String) {
+fun SectionHeader(title: String) {
     Text(
-        text = text,
-        style = MaterialTheme.typography.titleMedium,
+        text = title,
+        style = MaterialTheme.typography.headlineLarge,
         color = MaterialTheme.colorScheme.primary,
-        modifier = Modifier.padding(bottom = 8.dp)
+        modifier = Modifier.padding(vertical = 8.dp)
     )
 }
 
@@ -499,8 +775,8 @@ fun SectionHeader(text: String) {
 fun Chip(text: String) {
     Box(
         modifier = Modifier
-            .background(MaterialTheme.colorScheme.surface, RoundedCornerShape(50))
-            .border(1.dp, MaterialTheme.colorScheme.primary, RoundedCornerShape(50))
+            .background(Color.White, RoundedCornerShape(50))
+            .border(1.dp, Color(0xFFD9D9D9), RoundedCornerShape(50))
             .padding(horizontal = 14.dp, vertical = 8.dp)
     ) {
         Text(
@@ -511,329 +787,103 @@ fun Chip(text: String) {
     }
 }
 
-
-//* -------------------- BUSCO CASA - PANTALLA PRINCIPAL -------------------- */
 @Composable
-fun HomeBuscoCasaScreen(
-    onDescriptionClick: () -> Unit,
-    onProfileClick: () -> Unit
-) {
-    RoomieMatchUTheme {
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(Color(0xFFD2D0D0))
+fun ChipSection(title: String, items: List<String?>) {
+    val filtered = items.filterNotNull()
+    if (filtered.isNotEmpty()) {
+        SectionHeader(title)
+        FlowRow(
+            horizontalArrangement = Arrangement.spacedBy(10.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp)
         ) {
-            // Contenido principal centrado verticalmente
-            Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(horizontal = 16.dp)
-                    .padding(bottom = 16.dp),
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.Center // 🔹 Centrado verticalmente
-            ) {
-                TopBar(onProfileClick = onProfileClick)
-
-                // 🔹 Imagen principal (carrusel adaptativo)
-                val screenHeight = LocalConfiguration.current.screenHeightDp.dp
-                val imageHeight = (screenHeight * 0.55f).coerceIn(350.dp, 600.dp)
-
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 8.dp)
-                        .clip(RoundedCornerShape(30.dp))
-                        .background(MaterialTheme.colorScheme.surface)
-                        .border(
-                            width = 4.dp,
-                            color = MaterialTheme.colorScheme.primary,
-                            shape = RoundedCornerShape(30.dp)
-                        )
-                ) {
-                    Column(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalAlignment = Alignment.CenterHorizontally
-                    ) {
-                        // Carrusel ocupa todo el recuadro
-                        ImageCarousel(
-                            imageList = listOf(
-                                R.drawable.imagen3,
-                                R.drawable.imagen2
-                            ),
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height(imageHeight)
-                                .clip(RoundedCornerShape(topStart = 26.dp, topEnd = 26.dp))
-                        )
-
-                        // 🔹 Información debajo del carrusel + foto de perfil
-                        Column(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .background(MaterialTheme.colorScheme.background)
-                                .padding(16.dp)
-                                .clickable { onDescriptionClick() }
-                        ) {
-                            Row(
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.SpaceBetween,
-                                modifier = Modifier.fillMaxWidth()
-                            ) {
-                                Column {
-                                    Text(
-                                        "Pablo, 20",
-                                        style = MaterialTheme.typography.headlineMedium,
-                                        color = MaterialTheme.colorScheme.primary
-                                    )
-                                    Text(
-                                        "Chapinero",
-                                        style = MaterialTheme.typography.bodyLarge,
-                                        color = MaterialTheme.colorScheme.primary
-                                    )
-                                    Text(
-                                        "Habitación individual",
-                                        style = MaterialTheme.typography.bodyLarge,
-                                        color = MaterialTheme.colorScheme.primary
-                                    )
-                                }
-
-                                Image(
-                                    painter = painterResource(id = R.drawable.imagen2),
-                                    contentDescription = "Foto de perfil",
-                                    modifier = Modifier
-                                        .size(90.dp)
-                                        .clip(CircleShape)
-                                        .border(3.dp, MaterialTheme.colorScheme.primary, CircleShape),
-                                    contentScale = ContentScale.Crop
-                                )
-                            }
-                        }
-                    }
-                }
-
-                Spacer(modifier = Modifier.height(40.dp))
-
-                // 🔹 Botones inferiores dentro de la columna, centrados abajo
-                val screenWidth = LocalConfiguration.current.screenWidthDp.dp
-                val iconSize = (screenWidth * 0.15f).coerceIn(50.dp, 80.dp)
-
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(bottom = 8.dp),
-                    horizontalArrangement = Arrangement.SpaceEvenly,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Image(
-                        painter = painterResource(id = R.drawable.ic_atras),
-                        contentDescription = "Atrás",
-                        modifier = Modifier
-                            .size(iconSize)
-                            .clickable { /* acción atrás */ }
-                    )
-                    Image(
-                        painter = painterResource(id = R.drawable.ic_aceptar),
-                        contentDescription = "Aceptar",
-                        modifier = Modifier
-                            .size(iconSize)
-                            .clickable { /* acción aceptar */ }
-                    )
-                    Image(
-                        painter = painterResource(id = R.drawable.ic_rechazar),
-                        contentDescription = "Rechazar",
-                        modifier = Modifier
-                            .size(iconSize)
-                            .clickable { /* acción rechazar */ }
-                    )
-                }
-            }
+            filtered.forEach { Chip(it) }
         }
-    }
-}
-
-
-/* -------------------- BUSCO CASA - DESCRIPCIÓN -------------------- */
-@Composable
-fun DescriptionBuscoCasaScreen(onBackClick: () -> Unit = {}) {
-    RoomieMatchUTheme {
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(Color(0xFFD2D0D0))
-        ) {
-            // 🔹 Encabezado fijo superior
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .background(Color(0xFFD2D0D0))
-                    .padding(top = 24.dp, bottom = 12.dp)
-                    .align(Alignment.TopCenter),
-                contentAlignment = Alignment.Center
-            ) {
-                // Ícono de volver
-                Image(
-                    painter = painterResource(id = R.drawable.ic_atras_screens),
-                    contentDescription = "Volver",
-                    modifier = Modifier
-                        .size(50.dp)
-                        .align(Alignment.CenterStart)
-                        .clickable { onBackClick() }
-                        .padding(start = 16.dp)
-                )
-
-                // Texto centrado realmente
-                Text(
-                    text = "ROOMIE\nMATCH U",
-                    style = MaterialTheme.typography.displayLarge.copy(lineHeight = 21.sp),
-                    textAlign = TextAlign.Center,
-                    color = MaterialTheme.colorScheme.primary
-                )
-            }
-
-            // 🔹 Contenido con scroll
-            Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .verticalScroll(rememberScrollState())
-                    .padding(top = 100.dp, start = 24.dp, end = 24.dp, bottom = 24.dp),
-                horizontalAlignment = Alignment.CenterHorizontally
-            ) {
-                val screenHeight = LocalConfiguration.current.screenHeightDp.dp
-                val imageHeight = (screenHeight * 0.45f).coerceIn(300.dp, 500.dp)
-
-                // 🔹 Contenedor principal
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clip(RoundedCornerShape(30.dp))
-                        .background(MaterialTheme.colorScheme.surface)
-                        .border(3.dp, MaterialTheme.colorScheme.primary, RoundedCornerShape(30.dp))
-                ) {
-                    Column(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalAlignment = Alignment.CenterHorizontally
-                    ) {
-
-                        // 🔹 Carrusel de imágenes
-                        ImageCarousel(
-                            imageList = listOf(
-                                R.drawable.imagen3,
-                                R.drawable.imagen4
-                            ),
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height(imageHeight * 0.85f)
-                                .clip(RoundedCornerShape(topStart = 26.dp, topEnd = 26.dp))
-                        )
-
-                        // 🔹 Contenido con scroll interno
-                        Column(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .heightIn(max = 350.dp)
-                                .verticalScroll(rememberScrollState())
-                                .background(
-                                    MaterialTheme.colorScheme.background,
-                                    RoundedCornerShape(bottomStart = 26.dp, bottomEnd = 26.dp)
-                                )
-                                .padding(20.dp)
-                        ) {
-                            // 🔹 Nombre + foto de perfil
-                            Row(
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(12.dp)
-                            ) {
-                                Image(
-                                    painter = painterResource(id = R.drawable.imagen2),
-                                    contentDescription = "Foto de perfil",
-                                    modifier = Modifier
-                                        .size(70.dp)
-                                        .clip(CircleShape)
-                                        .border(3.dp, MaterialTheme.colorScheme.primary, CircleShape),
-                                    contentScale = ContentScale.Crop
-                                )
-                                Text(
-                                    "Pablo, 20",
-                                    style = MaterialTheme.typography.displayLarge,
-                                    color = MaterialTheme.colorScheme.primary
-                                )
-                            }
-
-                            Spacer(modifier = Modifier.height(12.dp))
-
-                            Text(
-                                "Chapinero",
-                                style = MaterialTheme.typography.titleMedium,
-                                color = MaterialTheme.colorScheme.primary
-                            )
-
-                            Spacer(modifier = Modifier.height(20.dp))
-
-                            // 🔹 Estilo de vida
-                            SectionHeader("Estilo de vida")
-                            FlowRow(
-                                horizontalArrangement = Arrangement.spacedBy(10.dp),
-                                verticalArrangement = Arrangement.spacedBy(10.dp)
-                            ) {
-                                listOf(
-                                    "No fumo",
-                                    "Estoy dispuesto a vivir con mascotas",
-                                    "Sin alergias",
-                                    "Tengo mascotas"
-                                ).forEach { Chip(it) }
-                            }
-
-                            Spacer(modifier = Modifier.height(20.dp))
-
-                            // 🔹 Precio dispuesto a pagar
-                            SectionHeader("Precio dispuesto a pagar")
-                            Chip("$600.000")
-
-                            Spacer(modifier = Modifier.height(20.dp))
-
-                            // 🔹 Número de personas con las que vivir
-                            SectionHeader("Número de personas con las que estarías dispuesto a vivir")
-                            Chip("3")
-
-                            Spacer(modifier = Modifier.height(20.dp))
-
-                            // 🔹 Servicios indispensables
-                            SectionHeader("Servicios indispensables que buscas")
-                            FlowRow(
-                                horizontalArrangement = Arrangement.spacedBy(10.dp),
-                                verticalArrangement = Arrangement.spacedBy(10.dp)
-                            ) {
-                                listOf(
-                                    "Internet",
-                                    "Amoblado",
-                                    "Lavadora",
-                                    "Baño Privado",
-                                    "Agua Caliente",
-                                    "Secadora"
-                                ).forEach { Chip(it) }
-                            }
-
-                            Spacer(modifier = Modifier.height(20.dp))
-
-                            // 🔹 Tipo de habitación
-                            SectionHeader("Tipo de habitación")
-                            Chip("Individual")
-
-                            Spacer(modifier = Modifier.height(20.dp))
-
-                            // 🔹 Fecha para mudarte
-                            SectionHeader("Fecha en la que necesitas mudarte")
-                            Chip("Inmediato")
-                        }
-                    }
-                }
-            }
-        }
+        Spacer(modifier = Modifier.height(16.dp))
     }
 }
 
 /* -------------------- COMPONENTES DE APOYO -------------------- */
+
+@Composable
+fun DetailHeader(onBackClick: () -> Unit) {
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(Color(0xFFD2D0D0))
+            .padding(top = 24.dp, bottom = 12.dp)
+            .zIndex(2f),
+        contentAlignment = Alignment.Center
+    ) {
+        Image(
+            painter = painterResource(id = R.drawable.ic_atras_screens),
+            contentDescription = "Atrás",
+            modifier = Modifier
+                .size(50.dp)
+                .align(Alignment.CenterStart)
+                .clickable { onBackClick() }
+                .padding(start = 16.dp)
+        )
+
+        Text(
+            text = "ROOMIE\nMATCH U",
+            style = MaterialTheme.typography.displayLarge.copy(lineHeight = 21.sp),
+            textAlign = TextAlign.Center,
+            color = MaterialTheme.colorScheme.primary
+        )
+    }
+}
+
+@Composable
+fun BottomControls(onBack: () -> Unit, onLike: () -> Unit, onReject: () -> Unit) {
+    val screenWidth = LocalConfiguration.current.screenWidthDp.dp
+    val iconSize = (screenWidth * 0.15f).coerceIn(50.dp, 80.dp)
+
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(bottom = 8.dp),
+        horizontalArrangement = Arrangement.SpaceEvenly,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Image(
+            painter = painterResource(id = R.drawable.ic_atras),
+            contentDescription = "Atrás",
+            modifier = Modifier
+                .size(iconSize)
+                .clickable { onBack() }
+        )
+        Image(
+            painter = painterResource(id = R.drawable.ic_aceptar),
+            contentDescription = "Aceptar",
+            modifier = Modifier
+                .size(iconSize)
+                .clickable { onLike() }
+        )
+        Image(
+            painter = painterResource(id = R.drawable.ic_rechazar),
+            contentDescription = "Rechazar",
+            modifier = Modifier
+                .size(iconSize)
+                .clickable { onReject() }
+        )
+    }
+}
+
+@Composable
+fun NoMoreProfilesScreen() {
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(Color(0xFFD2D0D0)),
+        contentAlignment = Alignment.Center
+    ) {
+        Text(
+            text = "No hay más perfiles 🥲",
+            style = MaterialTheme.typography.headlineMedium,
+            color = MaterialTheme.colorScheme.primary
+        )
+    }
+}
 
 @Composable
 fun CircleIconButton(icon: androidx.compose.ui.graphics.vector.ImageVector, color: Color) {

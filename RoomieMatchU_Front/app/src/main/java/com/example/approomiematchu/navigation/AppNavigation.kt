@@ -26,6 +26,8 @@ import com.example.approomiematchu.viewmodel.HomeViewModel
 import com.example.approomiematchu.viewmodel.HomeViewModelFactory
 import com.example.approomiematchu.ui.profileform.*
 import com.example.approomiematchu.viewmodel.AuthViewModel
+import com.example.approomiematchu.viewmodel.MatchViewModel
+import com.example.approomiematchu.viewmodel.MatchViewModelFactory
 import com.example.approomiematchu.viewmodel.PasswordResetViewModel
 import com.example.approomiematchu.viewmodel.PerfilCuestionarioViewModel
 import com.example.approomiematchu.viewmodel.PerfilCuestionarioViewModelFactory
@@ -42,6 +44,10 @@ fun AppNavigation(modifier: Modifier = Modifier) {
         factory = HomeViewModelFactory(RetrofitClient.instance)
     )
 
+    val matchViewModel: MatchViewModel = viewModel(
+        factory = MatchViewModelFactory(RetrofitClient.instance)
+    )
+
     // Observar el userId del AuthViewModel
     val userId by authViewModel.userId.collectAsState()
 
@@ -49,6 +55,12 @@ fun AppNavigation(modifier: Modifier = Modifier) {
     LaunchedEffect(userId) {
         if (userId != null) {
             homeViewModel.loadUserProfile(userId!!)
+        }
+    }
+
+    LaunchedEffect(userId) {
+        if (userId != null) {
+            matchViewModel.cargarPerfiles(userId!!)
         }
     }
 
@@ -135,6 +147,7 @@ fun AppNavigation(modifier: Modifier = Modifier) {
             HomeScreen(
                 navController = navController,
                 homeViewModel = homeViewModel,
+                matchViewModel = matchViewModel,
                 userId = userId
             )
         }
@@ -188,18 +201,24 @@ fun AppNavigation(modifier: Modifier = Modifier) {
             )
         }
 
-
         // ---------- DESCRIPCIONES ----------
         composable(AppScreens.DescripcionBuscoCasa.route) {
+            val perfilActual by matchViewModel.perfilActual.collectAsState()
+
             DescriptionBuscoCasaScreen(
-                onBackClick = { NavigationUtils.goBack(navController) }
+                perfil = perfilActual,
+                onBackClick = { navController.popBackStack() }
             )
         }
 
         composable(AppScreens.DescripcionTengoCasa.route) {
+            val perfilActual by matchViewModel.perfilActual.collectAsState()
+
             DescriptionTengoCasaScreen(
-                onBackClick = { NavigationUtils.goBack(navController) }
+                perfil = perfilActual,
+                onBackClick = { navController.popBackStack() }
             )
         }
+
     }
 }
