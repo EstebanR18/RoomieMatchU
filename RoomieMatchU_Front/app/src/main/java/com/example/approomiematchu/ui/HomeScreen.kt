@@ -21,6 +21,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -30,7 +31,6 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Person
-import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -61,13 +61,14 @@ import com.example.approomiematchu.data.remote.dto.PerfilResponse
 import com.example.approomiematchu.navigation.AppScreens
 import com.example.approomiematchu.navigation.NavigationUtils
 import com.example.approomiematchu.ui.profileform.presentation.TipoPerfil
+import com.example.approomiematchu.ui.state.PerfilAnimState
 import com.example.approomiematchu.ui.state.PerfilUIState
 import com.example.approomiematchu.ui.theme.RoomieMatchUTheme
 import com.example.approomiematchu.util.calculateAgeFromIso
 import com.example.approomiematchu.viewmodel.HomeViewModel
 import com.example.approomiematchu.viewmodel.MatchViewModel
+import com.example.approomiematchu.viewmodel.SwipeDirection
 
-@OptIn(ExperimentalAnimationApi::class)
 @Composable
 fun HomeScreen(
     navController: NavController,
@@ -77,8 +78,10 @@ fun HomeScreen(
 ) {
     val homeState by homeViewModel.uiState.collectAsState()
     val matchState by matchViewModel.uiState.collectAsState()
+    val matchSwipe by matchViewModel.swipeDirection.collectAsState()
+    val animationKey by matchViewModel.animationKey.collectAsState()
 
-    // → 1. Si no hay sesión, regresamos al landing
+    // Sin sesión
     if (userId == null) {
         LaunchedEffect(Unit) {
             navController.navigate(AppScreens.LandingScreen.route) {
@@ -88,107 +91,80 @@ fun HomeScreen(
         return
     }
 
-    // → 2. Loading inicial
+    // Loading
     if (homeState.isLoading) {
         Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(Color(0xFFD2D0D0)),
+            Modifier.fillMaxSize(),
             contentAlignment = Alignment.Center
-        ) {
-            CircularProgressIndicator(color = MaterialTheme.colorScheme.primary)
-        }
+        ) { CircularProgressIndicator() }
         return
     }
 
-    // → 3. Error
+    // Error
     homeState.error?.let { error ->
         Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(Color(0xFFD2D0D0)),
+            Modifier.fillMaxSize(),
             contentAlignment = Alignment.Center
         ) {
-            Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                Text(
-                    text = "Error: $error",
-                    color = MaterialTheme.colorScheme.error,
-                    textAlign = TextAlign.Center
-                )
-                Spacer(Modifier.height(16.dp))
-                Button(onClick = {
-                    homeViewModel.clearError()
-                    homeViewModel.loadUserProfile(userId)
-                }) {
-                    Text("Reintentar")
-                }
-            }
+            Text("Error: $error")
         }
         return
     }
 
-    // → 4. Vista principal según TIPO DE PERFIL
-    when (homeState.tipoPerfil) {
+    // SIN PERFIL → MANDAR A CUESTIONARIO
+    if (homeState.tipoPerfil == TipoPerfil.NONE) {
 
-        // -------------------------
-        //   BUSCO LUGAR
-        // -------------------------
-        TipoPerfil.BUSCO_LUGAR -> {
-
-            HomeBuscoCasaScreen(
-                state = matchState,
-                onDescriptionClick = {
-                    NavigationUtils.navigateToDescription(navController, TipoPerfil.BUSCO_LUGAR)
-                },
-                onProfileClick = {
-                    NavigationUtils.navigateToProfile(navController, TipoPerfil.BUSCO_LUGAR)
-                },
-                onNext = { matchViewModel.siguiente() },
-                onBack = { matchViewModel.atras() },
-                onLike = { matchViewModel.like() },
-                onReject = { matchViewModel.rechazar() }
-            )
-        }
-
-        // -------------------------
-        //   TENGO LUGAR
-        // -------------------------
-        TipoPerfil.TENGO_LUGAR -> {
-
-            HomeTengoCasaScreen(
-                state = matchState,
-                onDescriptionClick = {
-                    NavigationUtils.navigateToDescription(navController, TipoPerfil.TENGO_LUGAR)
-                },
-                onProfileClick = {
-                    NavigationUtils.navigateToProfile(navController, TipoPerfil.TENGO_LUGAR)
-                },
-                onNext = { matchViewModel.siguiente() },
-                onBack = { matchViewModel.atras() },
-                onLike = { matchViewModel.like() },
-                onReject = { matchViewModel.rechazar() }
-            )
-        }
-
-        // -------------------------
-        //   SIN PERFIL CREADO
-        // -------------------------
-        else -> {
-            LaunchedEffect(Unit) {
-                navController.navigate(AppScreens.CuestionarioRol.route) {
-                    popUpTo(AppScreens.HomeScreen.route) { inclusive = true }
-                }
-            }
-
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .background(Color(0xFFD2D0D0)),
-                contentAlignment = Alignment.Center
-            ) {
-                CircularProgressIndicator(color = MaterialTheme.colorScheme.primary)
+        LaunchedEffect("no-perfil") {
+            navController.navigate(AppScreens.CuestionarioRol.route) {
+                popUpTo(AppScreens.HomeScreen.route) { inclusive = true }
             }
         }
+
+        Box(
+            Modifier.fillMaxSize(),
+            contentAlignment = Alignment.Center
+        ) { CircularProgressIndicator() }
+
+        return
+    }
+
+    // Perfil BUSCO
+    if (homeState.tipoPerfil == TipoPerfil.BUSCO_LUGAR) {
+        HomeBuscoCasaScreen(
+            state = matchState,
+            swipeDirection = matchSwipe,
+            animationKey = animationKey,
+            onDescriptionClick = {
+                NavigationUtils.navigateToDescription(navController, TipoPerfil.BUSCO_LUGAR)
+            },
+            onProfileClick = {
+                NavigationUtils.navigateToProfile(navController, TipoPerfil.BUSCO_LUGAR)
+            },
+            onNext = { matchViewModel.siguiente() },
+            onBack = { matchViewModel.atras() },
+            onLike = { matchViewModel.like() },
+            onReject = { matchViewModel.rechazar() }
+        )
+        return
+    }
+
+    // Perfil TENGO
+    if (homeState.tipoPerfil == TipoPerfil.TENGO_LUGAR) {
+        HomeTengoCasaScreen(
+            state = matchState,
+            swipeDirection = matchSwipe,
+            animationKey = animationKey,
+            onDescriptionClick = {
+                NavigationUtils.navigateToDescription(navController, TipoPerfil.TENGO_LUGAR)
+            },
+            onProfileClick = {
+                NavigationUtils.navigateToProfile(navController, TipoPerfil.TENGO_LUGAR)
+            },
+            onNext = { matchViewModel.siguiente() },
+            onBack = { matchViewModel.atras() },
+            onLike = { matchViewModel.like() },
+            onReject = { matchViewModel.rechazar() }
+        )
     }
 }
 
@@ -286,41 +262,59 @@ fun ImageCarouselUrl(
 @Composable
 fun PerfilCardAnimated(
     state: PerfilUIState,
+    swipeDirection: SwipeDirection,
+    animationKey: Int,
+    onAnimationEnd: () -> Unit,
     modifier: Modifier = Modifier,
     contentPerfil: @Composable (PerfilResponse) -> Unit,
     contentLoading: @Composable () -> Unit,
     contentEmpty: @Composable () -> Unit
 ) {
+    val target = state
 
-    LaunchedEffect(state) {
-        android.util.Log.d(
-            "ANIMACION",
-            "TargetState → ${state::class.simpleName}"
-        )
+    LaunchedEffect(swipeDirection) {
+        if (swipeDirection != SwipeDirection.NONE) {
+            onAnimationEnd()   // Solo se activa con swipe real
+        }
     }
 
     AnimatedContent(
         targetState = state,
+        modifier = modifier,
         transitionSpec = {
-            (fadeIn(tween(350)) + slideInHorizontally(tween(350)) { it / 3 }) with
-                    (fadeOut(tween(350)) + slideOutHorizontally(tween(350)) { -it / 3 })
-        },
-        modifier = modifier
-    ) { animatedState ->
+            val duration = 450
 
-        when (animatedState) {
-
-            PerfilUIState.Loading -> {
-                contentLoading()
+            val enterOffset = { fullWidth: Int ->
+                when (swipeDirection) {
+                    SwipeDirection.RIGHT -> fullWidth
+                    SwipeDirection.LEFT -> -fullWidth
+                    else -> fullWidth / 6
+                }
             }
 
-            PerfilUIState.Empty -> {
-                contentEmpty()
+            val exitOffset = { fullWidth: Int ->
+                when (swipeDirection) {
+                    SwipeDirection.RIGHT -> -fullWidth
+                    SwipeDirection.LEFT -> fullWidth
+                    else -> -fullWidth / 6
+                }
             }
 
-            is PerfilUIState.Data -> {
-                contentPerfil(animatedState.perfil)
-            }
+            (slideInHorizontally(
+                animationSpec = tween(duration),
+                initialOffsetX = enterOffset
+            ) + fadeIn()) with
+
+                    (slideOutHorizontally(
+                        animationSpec = tween(duration),
+                        targetOffsetX = exitOffset
+                    ) + fadeOut())
+        }
+    ) { anim ->
+        when (anim) {
+            PerfilUIState.Loading -> contentLoading()
+            PerfilUIState.Empty -> contentEmpty()
+            is PerfilUIState.Data -> contentPerfil(anim.perfil)
         }
     }
 }
@@ -329,6 +323,8 @@ fun PerfilCardAnimated(
 @Composable
 fun HomeTengoCasaScreen(
     state: PerfilUIState,
+    swipeDirection: SwipeDirection,
+    animationKey: Int,
     onDescriptionClick: () -> Unit,
     onProfileClick: () -> Unit,
     onNext: () -> Unit,
@@ -336,7 +332,9 @@ fun HomeTengoCasaScreen(
     onLike: () -> Unit,
     onReject: () -> Unit
 ) {
+
     RoomieMatchUTheme {
+
         Box(
             modifier = Modifier
                 .fillMaxSize()
@@ -353,6 +351,8 @@ fun HomeTengoCasaScreen(
 
                 PerfilCardAnimated(
                     state = state,
+                    swipeDirection = swipeDirection,
+                    animationKey = animationKey,
                     modifier = Modifier.fillMaxWidth(),
                     contentPerfil = { perfil ->
                         HomeTengoCasaCard(perfil, onDescriptionClick)
@@ -362,7 +362,8 @@ fun HomeTengoCasaScreen(
                     },
                     contentEmpty = {
                         NoMoreProfilesScreen()
-                    }
+                    },
+                    onAnimationEnd = { onNext() }
                 )
 
                 Spacer(Modifier.height(40.dp))
@@ -558,6 +559,8 @@ fun DescriptionTengoCasaScreen(
 @Composable
 fun HomeBuscoCasaScreen(
     state: PerfilUIState,
+    swipeDirection: SwipeDirection,
+    animationKey: Int,
     onDescriptionClick: () -> Unit,
     onProfileClick: () -> Unit,
     onNext: () -> Unit,
@@ -583,6 +586,8 @@ fun HomeBuscoCasaScreen(
                 // Animación
                 PerfilCardAnimated(
                     state = state,
+                    swipeDirection = swipeDirection,
+                    animationKey = animationKey,
                     modifier = Modifier.fillMaxWidth(),
                     contentPerfil = { perfil ->
                         HomeBuscoCasaCard(perfil, onDescriptionClick)
@@ -592,7 +597,8 @@ fun HomeBuscoCasaScreen(
                     },
                     contentEmpty = {
                         NoMoreProfilesScreen()
-                    }
+                    },
+                    onAnimationEnd = { onNext() }
                 )
 
                 Spacer(Modifier.height(40.dp))
@@ -616,20 +622,21 @@ fun HomeBuscoCasaCard(
         modifier = Modifier
             .fillMaxWidth()
             .padding(horizontal = 8.dp)
-            .clip(RoundedCornerShape(30.dp))
-            .background(Color(0xFFD2D0D0))
-            .border(
-                width = 4.dp,
-                color = MaterialTheme.colorScheme.primary,
-                shape = RoundedCornerShape(30.dp)
-            )
     ) {
+        // CARD COMPLETA
         Column(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalAlignment = Alignment.CenterHorizontally
+            modifier = Modifier
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(30.dp))
+                .background(Color(0xFFD2D0D0))
+                .border(
+                    width = 4.dp,
+                    color = MaterialTheme.colorScheme.primary,
+                    shape = RoundedCornerShape(30.dp)
+                )
         ) {
 
-            // IMÁGENES DE LA RESIDENCIA
+            // CARRUSEL
             ImageCarouselUrl(
                 images = perfil.fotosResidenciaUrls ?: emptyList(),
                 modifier = Modifier
@@ -638,7 +645,7 @@ fun HomeBuscoCasaCard(
                     .clip(RoundedCornerShape(topStart = 26.dp, topEnd = 26.dp))
             )
 
-            // INFO PRINCIPAL
+            // INFO
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -646,46 +653,43 @@ fun HomeBuscoCasaCard(
                     .padding(16.dp)
                     .clickable { onDescriptionClick() }
             ) {
-
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-
-                    Column {
-                        Text(
-                            "${perfil.usuario}, $edad",
-                            style = MaterialTheme.typography.headlineLarge,
-                            color = MaterialTheme.colorScheme.primary
-                        )
-                        Text(
-                            perfil.barrio ?: "Barrio desconocido",
-                            style = MaterialTheme.typography.headlineMedium,
-                            color = MaterialTheme.colorScheme.primary
-                        )
-                        Text(
-                            perfil.descripcionLibre ?: "",
-                            style = MaterialTheme.typography.bodyLarge,
-                            color = MaterialTheme.colorScheme.primary
-                        )
-                    }
-
-                    AsyncImage(
-                        model = perfil.fotoPerfil,
-                        contentDescription = null,
-                        modifier = Modifier
-                            .size(90.dp)
-                            .clip(CircleShape)
-                            .border(3.dp, MaterialTheme.colorScheme.primary, CircleShape),
-                        contentScale = ContentScale.Crop
-                    )
-                }
+                Text(
+                    "${perfil.usuario}, $edad",
+                    style = MaterialTheme.typography.headlineLarge,
+                    color = MaterialTheme.colorScheme.primary
+                )
+                Text(
+                    perfil.barrio ?: "Barrio desconocido",
+                    style = MaterialTheme.typography.headlineMedium,
+                    color = MaterialTheme.colorScheme.primary
+                )
+                Text(
+                    perfil.descripcionLibre ?: "",
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = MaterialTheme.colorScheme.primary
+                )
             }
+        }
+
+        // ⭐ FOTO DE PERFIL SUPERPUESTA SOBRE EL CARRUSEL
+        Box(
+            modifier = Modifier
+                .size(120.dp)
+                .align(Alignment.BottomEnd)
+                .offset(x = (-10).dp, y = (-75).dp)
+        ) {
+            AsyncImage(
+                model = perfil.fotoPerfil,
+                contentDescription = null,
+                modifier = Modifier
+                    .fillMaxSize() // clave para que llene el círculo
+                    .clip(CircleShape)
+                    .border(4.dp, MaterialTheme.colorScheme.primary, CircleShape),
+                contentScale = ContentScale.Crop
+            )
         }
     }
 }
-
 
 /* -------------------- BUSCO CASA - DESCRIPCIÓN -------------------- */
 @Composable
