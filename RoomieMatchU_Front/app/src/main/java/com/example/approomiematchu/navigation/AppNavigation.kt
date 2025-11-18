@@ -25,6 +25,8 @@ import com.example.approomiematchu.ui.ProfileScreen
 import com.example.approomiematchu.viewmodel.HomeViewModel
 import com.example.approomiematchu.viewmodel.HomeViewModelFactory
 import com.example.approomiematchu.ui.profileform.*
+import com.example.approomiematchu.ui.profileform.presentation.TipoPerfil
+import com.example.approomiematchu.ui.state.PerfilUIState
 import com.example.approomiematchu.viewmodel.AuthViewModel
 import com.example.approomiematchu.viewmodel.MatchViewModel
 import com.example.approomiematchu.viewmodel.MatchViewModelFactory
@@ -35,6 +37,7 @@ import com.example.approomiematchu.viewmodel.PerfilCuestionarioViewModelFactory
 @Composable
 fun AppNavigation(modifier: Modifier = Modifier) {
     val navController = rememberNavController()
+
     val passwordViewModel: PasswordResetViewModel = viewModel()
     val perfilCuestionarioViewModel: PerfilCuestionarioViewModel = viewModel(
         factory = PerfilCuestionarioViewModelFactory(RetrofitClient.instance)
@@ -43,29 +46,29 @@ fun AppNavigation(modifier: Modifier = Modifier) {
     val homeViewModel: HomeViewModel = viewModel(
         factory = HomeViewModelFactory(RetrofitClient.instance)
     )
-
     val matchViewModel: MatchViewModel = viewModel(
         factory = MatchViewModelFactory(RetrofitClient.instance)
     )
 
-    // Observar el userId del AuthViewModel
+    // Observar sesión
     val userId by authViewModel.userId.collectAsState()
+    val homeState by homeViewModel.uiState.collectAsState()
 
-    // Cargar el perfil cuando el userId esté disponible
+    // → 1. Cargar perfil del usuario al iniciar sesión
     LaunchedEffect(userId) {
         if (userId != null) {
             homeViewModel.loadUserProfile(userId!!)
         }
     }
 
-    LaunchedEffect(userId) {
-        if (userId != null) {
+    // → 2. Cargar sugerencias SOLO cuando se sepa el tipo de perfil
+    LaunchedEffect(homeState.tipoPerfil) {
+        if (userId != null &&
+            homeState.tipoPerfil != TipoPerfil.NONE
+        ) {
             matchViewModel.cargarPerfiles(userId!!)
         }
     }
-
-    // Observar el estado del home
-    val homeState by homeViewModel.uiState.collectAsState()
 
     NavHost(
         navController = navController,
@@ -203,19 +206,19 @@ fun AppNavigation(modifier: Modifier = Modifier) {
 
         // ---------- DESCRIPCIONES ----------
         composable(AppScreens.DescripcionBuscoCasa.route) {
-            val perfilActual by matchViewModel.perfilActual.collectAsState()
+            val matchState by matchViewModel.uiState.collectAsState()
 
             DescriptionBuscoCasaScreen(
-                perfil = perfilActual,
+                perfil = (matchState as? PerfilUIState.Data)?.perfil,
                 onBackClick = { navController.popBackStack() }
             )
         }
 
         composable(AppScreens.DescripcionTengoCasa.route) {
-            val perfilActual by matchViewModel.perfilActual.collectAsState()
+            val matchState by matchViewModel.uiState.collectAsState()
 
             DescriptionTengoCasaScreen(
-                perfil = perfilActual,
+                perfil = (matchState as? PerfilUIState.Data)?.perfil,
                 onBackClick = { navController.popBackStack() }
             )
         }

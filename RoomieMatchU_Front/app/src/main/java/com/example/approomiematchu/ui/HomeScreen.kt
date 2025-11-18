@@ -1,5 +1,13 @@
 package com.example.approomiematchu.ui
 
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.ExperimentalAnimationApi
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.slideOutHorizontally
+import androidx.compose.animation.with
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -13,6 +21,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -22,9 +31,9 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Person
-import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -41,10 +50,10 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.ui.zIndex
 import androidx.navigation.NavController
 import coil3.compose.AsyncImage
 import com.example.approomiematchu.R
@@ -52,10 +61,13 @@ import com.example.approomiematchu.data.remote.dto.PerfilResponse
 import com.example.approomiematchu.navigation.AppScreens
 import com.example.approomiematchu.navigation.NavigationUtils
 import com.example.approomiematchu.ui.profileform.presentation.TipoPerfil
+import com.example.approomiematchu.ui.state.PerfilAnimState
+import com.example.approomiematchu.ui.state.PerfilUIState
 import com.example.approomiematchu.ui.theme.RoomieMatchUTheme
 import com.example.approomiematchu.util.calculateAgeFromIso
 import com.example.approomiematchu.viewmodel.HomeViewModel
 import com.example.approomiematchu.viewmodel.MatchViewModel
+import com.example.approomiematchu.viewmodel.SwipeDirection
 
 @Composable
 fun HomeScreen(
@@ -64,12 +76,12 @@ fun HomeScreen(
     matchViewModel: MatchViewModel,
     userId: Long?
 ) {
-
     val homeState by homeViewModel.uiState.collectAsState()
-    val userProfile by homeViewModel.userProfile.collectAsState()
-    val perfilActual by matchViewModel.perfilActual.collectAsState()
+    val matchState by matchViewModel.uiState.collectAsState()
+    val matchSwipe by matchViewModel.swipeDirection.collectAsState()
+    val animationKey by matchViewModel.animationKey.collectAsState()
 
-    // Si no hay userId, redirigir al login
+    // Sin sesión
     if (userId == null) {
         LaunchedEffect(Unit) {
             navController.navigate(AppScreens.LandingScreen.route) {
@@ -79,602 +91,84 @@ fun HomeScreen(
         return
     }
 
-    // Mostrar loading si está cargando
+    // Loading
     if (homeState.isLoading) {
         Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(Color(0xFFD2D0D0)),
+            Modifier.fillMaxSize(),
             contentAlignment = Alignment.Center
-        ) {
-            CircularProgressIndicator(color = MaterialTheme.colorScheme.primary)
-        }
+        ) { CircularProgressIndicator() }
         return
     }
 
-    // Mostrar error si hay
+    // Error
     homeState.error?.let { error ->
         Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(Color(0xFFD2D0D0)),
+            Modifier.fillMaxSize(),
             contentAlignment = Alignment.Center
         ) {
-            Column(
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.Center
-            ) {
-                Text(
-                    text = "Error: $error",
-                    color = MaterialTheme.colorScheme.error,
-                    textAlign = TextAlign.Center
-                )
-                Spacer(modifier = Modifier.height(16.dp))
-                Button(onClick = {
-                    homeViewModel.clearError()
-                    homeViewModel.loadUserProfile(userId)
-                }) {
-                    Text("Reintentar")
-                }
-            }
+            Text("Error: $error")
         }
         return
     }
 
-    // Mostrar el home según el tipo de perfil
-    when (homeState.tipoPerfil) {
-        TipoPerfil.BUSCO_LUGAR -> HomeBuscoCasaScreen(
-            perfil = perfilActual,
+    // SIN PERFIL → MANDAR A CUESTIONARIO
+    if (homeState.tipoPerfil == TipoPerfil.NONE) {
+
+        LaunchedEffect("no-perfil") {
+            navController.navigate(AppScreens.CuestionarioRol.route) {
+                popUpTo(AppScreens.HomeScreen.route) { inclusive = true }
+            }
+        }
+
+        Box(
+            Modifier.fillMaxSize(),
+            contentAlignment = Alignment.Center
+        ) { CircularProgressIndicator() }
+
+        return
+    }
+
+    // Perfil BUSCO
+    if (homeState.tipoPerfil == TipoPerfil.BUSCO_LUGAR) {
+        HomeBuscoCasaScreen(
+            state = matchState,
+            swipeDirection = matchSwipe,
+            animationKey = animationKey,
             onDescriptionClick = {
-                NavigationUtils.navigateToDescription(navController, homeState.tipoPerfil)
+                NavigationUtils.navigateToDescription(navController, TipoPerfil.BUSCO_LUGAR)
             },
             onProfileClick = {
-                NavigationUtils.navigateToProfile(navController, homeState.tipoPerfil)
+                NavigationUtils.navigateToProfile(navController, TipoPerfil.BUSCO_LUGAR)
             },
             onNext = { matchViewModel.siguiente() },
             onBack = { matchViewModel.atras() },
             onLike = { matchViewModel.like() },
             onReject = { matchViewModel.rechazar() }
         )
+        return
+    }
 
-        TipoPerfil.TENGO_LUGAR -> HomeTengoCasaScreen(
-            perfil = perfilActual,
+    // Perfil TENGO
+    if (homeState.tipoPerfil == TipoPerfil.TENGO_LUGAR) {
+        HomeTengoCasaScreen(
+            state = matchState,
+            swipeDirection = matchSwipe,
+            animationKey = animationKey,
             onDescriptionClick = {
-                NavigationUtils.navigateToDescription(navController, homeState.tipoPerfil)
+                NavigationUtils.navigateToDescription(navController, TipoPerfil.TENGO_LUGAR)
             },
             onProfileClick = {
-                NavigationUtils.navigateToProfile(navController, homeState.tipoPerfil)
+                NavigationUtils.navigateToProfile(navController, TipoPerfil.TENGO_LUGAR)
             },
             onNext = { matchViewModel.siguiente() },
             onBack = { matchViewModel.atras() },
             onLike = { matchViewModel.like() },
             onReject = { matchViewModel.rechazar() }
         )
-
-        else -> {
-            // Si no tiene perfil, redirigir al cuestionario
-            LaunchedEffect(Unit) {
-                navController.navigate(AppScreens.CuestionarioRol.route) {
-                    popUpTo(AppScreens.HomeScreen.route) { inclusive = true }
-                }
-            }
-            // Mientras tanto mostrar loading
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .background(Color(0xFFD2D0D0)),
-                contentAlignment = Alignment.Center
-            ) {
-                CircularProgressIndicator(color = MaterialTheme.colorScheme.primary)
-            }
-        }
     }
 }
 
-/* -------------------- TENGO CASA - PANTALLA PRINCIPAL -------------------- */
-@Composable
-fun HomeTengoCasaScreen(
-    perfil: PerfilResponse?,
-    onDescriptionClick: () -> Unit,
-    onProfileClick: () -> Unit,
-    onNext: () -> Unit,
-    onBack: () -> Unit,
-    onLike: () -> Unit,
-    onReject: () -> Unit
-) {
-
-    if (perfil == null) {
-        NoMoreProfilesScreen()
-        return
-    }
-
-    val edad = calculateAgeFromIso(perfil.fechaNacimiento)
-
-    RoomieMatchUTheme {
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(Color(0xFFD2D0D0))
-        ) {
-            // Contenido principal centrado verticalmente
-            Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(horizontal = 16.dp)
-                    .padding(bottom = 16.dp),
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.Center // 🔹 CENTRA verticalmente
-            ) {
-                TopBar(onProfileClick = onProfileClick)
-
-                // 🔹 Imagen principal (carrusel adaptativo)
-                val screenHeight = LocalConfiguration.current.screenHeightDp.dp
-                val imageHeight = (screenHeight * 0.55f).coerceIn(350.dp, 600.dp)
-
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 8.dp)
-                        .clip(RoundedCornerShape(30.dp))
-                        .background(MaterialTheme.colorScheme.surface)
-                        .border(
-                            width = 4.dp,
-                            color = MaterialTheme.colorScheme.primary,
-                            shape = RoundedCornerShape(30.dp)
-                        )
-                ) {
-                    Column(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalAlignment = Alignment.CenterHorizontally
-                    ) {
-                        // CARRUSEL → solo fotoPerfil
-                        ImageCarouselUrl(
-                            images = listOfNotNull(perfil.fotoPerfil),
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height(imageHeight)
-                        )
-
-                        // Información debajo del carrusel
-                        Column(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .background(Color(0xFFD2D0D0))
-                                .padding(16.dp)
-                                .clickable { onDescriptionClick() }
-                        ) {
-                            Text(
-                                "${perfil.genero ?: "Usuario"}, ${edad ?: "?"}",
-                                style = MaterialTheme.typography.headlineLarge,
-                                color = MaterialTheme.colorScheme.primary
-                            )
-                            Text(
-                                perfil.barrio ?: "Barrio desconocido",
-                                style = MaterialTheme.typography.headlineMedium,
-                                color = MaterialTheme.colorScheme.primary
-                            )
-                            Text(
-                                perfil.descripcionLibre ?: "",
-                                style = MaterialTheme.typography.bodyLarge,
-                                color = MaterialTheme.colorScheme.primary
-                            )
-                        }
-                    }
-                }
-
-                Spacer(modifier = Modifier.height(40.dp))
-
-                BottomControls(onBack, onLike, onReject)
-            }
-        }
-    }
-}
-
-/* -------------------- TENGO CASA - DESCRIPCIÓN -------------------- */
-@Composable
-fun DescriptionTengoCasaScreen(
-    perfil: PerfilResponse?,
-    onBackClick: () -> Unit
-) {
-    RoomieMatchUTheme {
-
-        val edad = calculateAgeFromIso(perfil?.fechaNacimiento)
-
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(Color(0xFFD2D0D0))
-        ) {
-            Spacer(Modifier.height(24.dp))
-
-            DetailHeader(onBackClick = onBackClick)
-
-            Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .verticalScroll(rememberScrollState())
-                    .padding(
-                        top = 100.dp,
-                        start = 16.dp,
-                        end = 16.dp,
-                        bottom = 16.dp
-                    )
-                    .zIndex(1f),
-                horizontalAlignment = Alignment.CenterHorizontally
-            ) {
-
-                val screenHeight = LocalConfiguration.current.screenHeightDp.dp
-                val imageHeight = (screenHeight * 0.45f).coerceIn(300.dp, 500.dp)
-
-                // CARD PRINCIPAL
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clip(RoundedCornerShape(30.dp))
-                        .background(Color(0xFFD2D0D0))
-                        .border(3.dp, MaterialTheme.colorScheme.primary, RoundedCornerShape(30.dp))
-                ) {
-                    Column {
-
-                        // Carrusel (NO scrollea)
-                        ImageCarouselUrl(
-                            images = listOfNotNull(perfil?.fotoPerfil),
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height(imageHeight)
-                                .clip(RoundedCornerShape(topStart = 30.dp, topEnd = 30.dp))
-                        )
-
-                        // CONTENIDO SCROLLEABLE
-                        Column(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .background(Color(0xFFD2D0D0))
-                                .padding(20.dp)
-                        ) {
-
-                            Text(
-                                "${perfil?.genero ?: "-"}, ${edad ?: "--"}",
-                                style = MaterialTheme.typography.headlineLarge,
-                                color = MaterialTheme.colorScheme.primary
-                            )
-
-                            Spacer(Modifier.height(10.dp))
-
-                            Text(
-                                perfil?.barrio ?: "-",
-                                style = MaterialTheme.typography.headlineLarge,
-                                color = MaterialTheme.colorScheme.primary
-                            )
-
-                            Spacer(Modifier.height(10.dp))
-
-                            // PREFERENCIAS
-                            ChipSection(
-                                title = "Preferencias",
-                                items = listOf(
-                                    perfil?.presupuesto?.let { "Presupuesto: $$it" },
-                                    perfil?.tipoHabitacion,
-                                    perfil?.tiempoEstancia,
-                                    perfil?.fechaMudanza?.let { "Mudanza: $it" }
-                                )
-                            )
-
-                            // SERVICIOS DESEADOS → A CHIPS
-                            ChipSection(
-                                title = "Servicios deseados",
-                                items = perfil?.serviciosDeseados
-                                    ?.split(",")
-                                    ?.map { it.trim() }
-                                    ?: emptyList()
-                            )
-
-                            /*
-                            // HÁBITOS → CHIPS
-                            ChipSection(
-                                title = "Hábitos",
-                                items = perfil?.habitos
-                                    ?.split(",")
-                                    ?.map { it.trim() }
-                                    ?: emptyList()
-                            )
-                             */
-
-                            // OTROS
-                            ChipSection(
-                                title = "Otros",
-                                items = listOf(
-                                    if (perfil?.mascota == true) "Mascota" else "Sin mascota",
-                                    if (perfil?.fuma == true) "Fuma" else "No fuma",
-                                    if (perfil?.alergico == true) "Alergia: ${perfil.detalleAlergia}" else null
-                                )
-                            )
-
-                        }
-                    }
-                }
-            }
-        }
-    }
-}
-
-//* -------------------- BUSCO CASA - PANTALLA PRINCIPAL -------------------- */
-@Composable
-fun HomeBuscoCasaScreen(
-    perfil: PerfilResponse?,
-    onDescriptionClick: () -> Unit,
-    onProfileClick: () -> Unit,
-    onNext: () -> Unit,
-    onBack: () -> Unit,
-    onLike: () -> Unit,
-    onReject: () -> Unit
-) {
-
-    if (perfil == null) {
-        NoMoreProfilesScreen()
-        return
-    }
-
-    // Edad calculada
-    val edad = calculateAgeFromIso(perfil.fechaNacimiento)
-
-    RoomieMatchUTheme {
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(Color(0xFFD2D0D0))
-        ) {
-            // Contenido principal centrado verticalmente
-            Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(horizontal = 16.dp)
-                    .padding(bottom = 16.dp),
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.Center // 🔹 Centrado verticalmente
-            ) {
-                TopBar(onProfileClick = onProfileClick)
-
-                // 🔹 Imagen principal (carrusel adaptativo)
-                val screenHeight = LocalConfiguration.current.screenHeightDp.dp
-                val imageHeight = (screenHeight * 0.55f).coerceIn(350.dp, 600.dp)
-
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 8.dp)
-                        .clip(RoundedCornerShape(30.dp))
-                        .background(Color(0xFFD2D0D0))
-                        .border(
-                            width = 4.dp,
-                            color = MaterialTheme.colorScheme.primary,
-                            shape = RoundedCornerShape(30.dp)
-                        )
-                ) {
-                    Column(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalAlignment = Alignment.CenterHorizontally
-                    ) {
-                        // Carrusel
-                        ImageCarouselUrl(
-                            images = perfil.fotosResidenciaUrls ?: emptyList(),
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height(imageHeight)
-                                .clip(RoundedCornerShape(topStart = 26.dp, topEnd = 26.dp))
-                        )
-
-                        // 🔹 Información debajo del carrusel + foto de perfil
-                        Column(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .background(Color(0xFFD2D0D0))
-                                .padding(16.dp)
-                                .clickable { onDescriptionClick() }
-                        ) {
-                            Row(
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.SpaceBetween,
-                                modifier = Modifier.fillMaxWidth()
-                            ) {
-                                Column {
-                                    Text(
-                                        "${perfil.genero ?: "Usuario"}, ${edad ?: "?"}",
-                                        style = MaterialTheme.typography.headlineLarge,
-                                        color = MaterialTheme.colorScheme.primary
-                                    )
-                                    Text(
-                                        perfil.barrio ?: "Barrio desconocido",
-                                        style = MaterialTheme.typography.headlineMedium,
-                                        color = MaterialTheme.colorScheme.primary
-                                    )
-                                    Text(
-                                        perfil.descripcionLibre ?: "",
-                                        style = MaterialTheme.typography.bodyLarge,
-                                        color = MaterialTheme.colorScheme.primary
-                                    )
-                                }
-
-                                // FOTO DE PERFIL
-                                AsyncImage(
-                                    model = perfil.fotoPerfil,
-                                    contentDescription = null,
-                                    modifier = Modifier
-                                        .size(90.dp)
-                                        .clip(CircleShape)
-                                        .border(
-                                            3.dp,
-                                            MaterialTheme.colorScheme.primary,
-                                            CircleShape
-                                        ),
-                                    contentScale = ContentScale.Crop
-                                )
-                            }
-                        }
-                    }
-                }
-
-                Spacer(modifier = Modifier.height(40.dp))
-
-                BottomControls(onBack, onLike, onReject)
-            }
-        }
-    }
-}
-
-/* -------------------- BUSCO CASA - DESCRIPCIÓN -------------------- */
-@Composable
-fun DescriptionBuscoCasaScreen(
-    perfil: PerfilResponse?,
-    onBackClick: () -> Unit
-) {
-    RoomieMatchUTheme {
-
-        val edad = calculateAgeFromIso(perfil?.fechaNacimiento)
-        val imageUrls = perfil?.fotosResidenciaUrls ?: listOfNotNull(perfil?.fotoPerfil)
-
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(Color(0xFFD2D0D0))
-        ) {
-
-            Spacer(Modifier.height(24.dp))
-
-            DetailHeader(onBackClick = onBackClick)
-
-            Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .verticalScroll(rememberScrollState())
-                    .padding(
-                        top = 100.dp,
-                        start = 16.dp,
-                        end = 16.dp,
-                        bottom = 16.dp
-                    ),
-                horizontalAlignment = Alignment.CenterHorizontally
-            ) {
-
-                // CARD
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clip(RoundedCornerShape(30.dp))
-                        .background(Color(0xFFD2D0D0))
-                        .border(3.dp, MaterialTheme.colorScheme.primary, RoundedCornerShape(30.dp))
-                        .zIndex(1f)
-                ) {
-
-                    Column {
-
-                        // 🔵 Carrusel NO scrollea
-                        ImageCarouselUrl(
-                            images = imageUrls,
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height(340.dp)
-                                .clip(RoundedCornerShape(topStart = 30.dp, topEnd = 30.dp))
-                        )
-
-                        // Contenido SCROLLEABLE
-                        Column(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .background(Color(0xFFD2D0D0))
-                                .padding(20.dp)
-                        ) {
-
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                AsyncImage(
-                                    model = perfil?.fotoPerfil,
-                                    contentDescription = null,
-                                    modifier = Modifier
-                                        .size(80.dp)
-                                        .clip(CircleShape)
-                                        .border(
-                                            3.dp,
-                                            MaterialTheme.colorScheme.primary,
-                                            CircleShape
-                                        ),
-                                    contentScale = ContentScale.Crop
-                                )
-
-                                Spacer(Modifier.width(16.dp))
-
-                                Column {
-                                    Text(
-                                        "${perfil?.genero ?: "-"}, ${edad ?: "--"}",
-                                        style = MaterialTheme.typography.headlineLarge,
-                                        color = MaterialTheme.colorScheme.primary
-                                    )
-                                    Text(
-                                        perfil?.barrio ?: "-",
-                                        style = MaterialTheme.typography.bodyLarge
-                                    )
-                                }
-                            }
-
-                            Spacer(Modifier.height(20.dp))
-
-                            // DETALLES DEL LUGAR
-                            ChipSection(
-                                title = "Detalles del lugar",
-                                items = listOf(
-                                    perfil?.arriendo?.let { "Arriendo: $$it" },
-                                    perfil?.cantidadHabitaciones?.let { "Habitaciones: $it" },
-                                    perfil?.maxRoomies?.let { "Máx. roomies: $it" }
-                                )
-                            )
-
-                            // REGLAS DE CONVIVENCIA → CHIPS
-                            ChipSection(
-                                title = "Reglas de convivencia",
-                                items = perfil?.reglasConvivencia
-                                    ?.split(",")
-                                    ?.map { it.trim() }
-                                    ?: emptyList()
-                            )
-
-                            // SERVICIOS INCLUIDOS → CHIPS
-                            ChipSection(
-                                title = "Servicios incluidos",
-                                items = perfil?.serviciosIncluidos
-                                    ?.split(",")
-                                    ?.map { it.trim() }
-                                    ?: emptyList()
-                            )
-
-                            /*
-                            // HÁBITOS PERSONAL → CHIPS
-                            ChipSection(
-                                title = "Hábitos",
-                                items = perfil?.habitos
-                                    ?.split(",")
-                                    ?.map { it.trim() }
-                                    ?: emptyList()
-                            )
-                             */
-
-                            // OTROS
-                            ChipSection(
-                                title = "Otros",
-                                items = listOf(
-                                    if (perfil?.mascota == true) "Mascota" else "Sin mascota",
-                                    if (perfil?.fuma == true) "Fuma" else "No fuma",
-                                    if (perfil?.alergico == true) "Alergia: ${perfil.detalleAlergia}" else null
-                                )
-                            )
-
-                        }
-                    }
-                }
-            }
-        }
-    }
-}
-
-/* ---------- Reutilizables ---------- */
+/* -------------------- COMPONENTES REUTILIZABLES -------------------- */
 
 @Composable
 fun TopBar(onProfileClick: () -> Unit) {
@@ -726,7 +220,7 @@ fun ImageCarouselUrl(
         return
     }
 
-    Box(modifier) {
+    Box(modifier = modifier) {
         AsyncImage(
             model = images[index],
             contentDescription = null,
@@ -761,6 +255,571 @@ fun ImageCarouselUrl(
         }
     }
 }
+
+/* -------------------- PERFIL CARD + ANIMACIÓN -------------------- */
+
+@OptIn(ExperimentalAnimationApi::class)
+@Composable
+fun PerfilCardAnimated(
+    state: PerfilUIState,
+    swipeDirection: SwipeDirection,
+    animationKey: Int,
+    onAnimationEnd: () -> Unit,
+    modifier: Modifier = Modifier,
+    contentPerfil: @Composable (PerfilResponse) -> Unit,
+    contentLoading: @Composable () -> Unit,
+    contentEmpty: @Composable () -> Unit
+) {
+    val target = state
+
+    LaunchedEffect(swipeDirection) {
+        if (swipeDirection != SwipeDirection.NONE) {
+            onAnimationEnd()   // Solo se activa con swipe real
+        }
+    }
+
+    AnimatedContent(
+        targetState = state,
+        modifier = modifier,
+        transitionSpec = {
+            val duration = 450
+
+            val enterOffset = { fullWidth: Int ->
+                when (swipeDirection) {
+                    SwipeDirection.RIGHT -> fullWidth
+                    SwipeDirection.LEFT -> -fullWidth
+                    else -> fullWidth / 6
+                }
+            }
+
+            val exitOffset = { fullWidth: Int ->
+                when (swipeDirection) {
+                    SwipeDirection.RIGHT -> -fullWidth
+                    SwipeDirection.LEFT -> fullWidth
+                    else -> -fullWidth / 6
+                }
+            }
+
+            (slideInHorizontally(
+                animationSpec = tween(duration),
+                initialOffsetX = enterOffset
+            ) + fadeIn()) with
+
+                    (slideOutHorizontally(
+                        animationSpec = tween(duration),
+                        targetOffsetX = exitOffset
+                    ) + fadeOut())
+        }
+    ) { anim ->
+        when (anim) {
+            PerfilUIState.Loading -> contentLoading()
+            PerfilUIState.Empty -> contentEmpty()
+            is PerfilUIState.Data -> contentPerfil(anim.perfil)
+        }
+    }
+}
+
+/* -------------------- TENGO CASA - PANTALLA PRINCIPAL -------------------- */
+@Composable
+fun HomeTengoCasaScreen(
+    state: PerfilUIState,
+    swipeDirection: SwipeDirection,
+    animationKey: Int,
+    onDescriptionClick: () -> Unit,
+    onProfileClick: () -> Unit,
+    onNext: () -> Unit,
+    onBack: () -> Unit,
+    onLike: () -> Unit,
+    onReject: () -> Unit
+) {
+
+    RoomieMatchUTheme {
+
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(Color(0xFFD2D0D0))
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(horizontal = 16.dp)
+                    .padding(bottom = 16.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                TopBar(onProfileClick = onProfileClick)
+
+                PerfilCardAnimated(
+                    state = state,
+                    swipeDirection = swipeDirection,
+                    animationKey = animationKey,
+                    modifier = Modifier.fillMaxWidth(),
+                    contentPerfil = { perfil ->
+                        HomeTengoCasaCard(perfil, onDescriptionClick)
+                    },
+                    contentLoading = {
+                        CircularProgressIndicator()
+                    },
+                    contentEmpty = {
+                        NoMoreProfilesScreen()
+                    },
+                    onAnimationEnd = { onNext() }
+                )
+
+                Spacer(Modifier.height(40.dp))
+
+                BottomControls(onBack, onLike, onReject)
+            }
+        }
+    }
+}
+
+@Composable
+fun HomeTengoCasaCard(
+    perfil: PerfilResponse,
+    onDescriptionClick: () -> Unit
+) {
+    val edad = calculateAgeFromIso(perfil.fechaNacimiento)
+    val screenHeight = LocalConfiguration.current.screenHeightDp.dp
+    val imageHeight = (screenHeight * 0.55f).coerceIn(350.dp, 600.dp)
+
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 8.dp)
+            .clip(RoundedCornerShape(30.dp))
+            .background(Color(0xFFD2D0D0))
+            .border(
+                width = 4.dp,
+                color = MaterialTheme.colorScheme.primary,
+                shape = RoundedCornerShape(30.dp)
+            )
+    ) {
+
+        Column(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+
+            ImageCarouselUrl(
+                images = listOfNotNull(perfil.fotoPerfil),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(imageHeight)
+            )
+
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .background(Color(0xFFD2D0D0))
+                    .padding(16.dp)
+                    .clickable { onDescriptionClick() }
+            ) {
+                Text(
+                    "${perfil.usuario ?: "Usuario"}, ${edad ?: "?"}",
+                    style = MaterialTheme.typography.headlineLarge,
+                    color = MaterialTheme.colorScheme.primary
+                )
+                Text(
+                    perfil.barrio ?: "Barrio desconocido",
+                    style = MaterialTheme.typography.headlineMedium,
+                    color = MaterialTheme.colorScheme.primary
+                )
+                Text(
+                    perfil.descripcionLibre ?: "",
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = MaterialTheme.colorScheme.primary
+                )
+            }
+        }
+    }
+}
+
+/* -------------------- TENGO CASA - DESCRIPCIÓN -------------------- */
+@Composable
+fun DescriptionTengoCasaScreen(
+    perfil: PerfilResponse?,
+    onBackClick: () -> Unit
+) {
+    RoomieMatchUTheme {
+
+        val edad = calculateAgeFromIso(perfil?.fechaNacimiento)
+
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(Color(0xFFD2D0D0))
+        ) {
+            // usamos la misma separación que el Home (top = 24.dp en TopBar)
+            Column(modifier = Modifier.fillMaxSize()) {
+                Spacer(Modifier.height(24.dp))
+                DetailHeader(onBackClick = onBackClick)
+
+                Column(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .verticalScroll(rememberScrollState())
+                        .padding(top = 16.dp, start = 24.dp, end = 24.dp, bottom = 24.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    val screenHeight = LocalConfiguration.current.screenHeightDp.dp
+                    val imageHeight = (screenHeight * 0.45f).coerceIn(300.dp, 500.dp)
+
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(30.dp))
+                            .background(Color(0xFFD2D0D0))
+                            .border(
+                                3.dp,
+                                MaterialTheme.colorScheme.primary,
+                                RoundedCornerShape(30.dp)
+                            )
+                    ) {
+                        Column {
+                            ImageCarouselUrl(
+                                images = listOfNotNull(perfil?.fotoPerfil),
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(imageHeight)
+                                    .clip(RoundedCornerShape(topStart = 30.dp, topEnd = 30.dp))
+                            )
+
+                            // contenido dentro de la tarjeta (chips)
+                            Column(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .background(Color(0xFFD2D0D0))
+                                    .padding(20.dp)
+                            ) {
+                                Text(
+                                    "${perfil?.usuario ?: "-"}, ${edad ?: "--"}",
+                                    style = MaterialTheme.typography.headlineLarge,
+                                    color = MaterialTheme.colorScheme.primary
+                                )
+
+                                Spacer(Modifier.height(10.dp))
+
+                                Text(
+                                    perfil?.barrio ?: "-",
+                                    style = MaterialTheme.typography.headlineLarge,
+                                    color = MaterialTheme.colorScheme.primary
+                                )
+
+                                Spacer(Modifier.height(10.dp))
+
+                                // Preferencias (chips agrupados)
+                                ChipSection(
+                                    title = "Preferencias",
+                                    items = listOf(
+                                        perfil?.presupuesto?.let { "Presupuesto: $$it" },
+                                        perfil?.tipoHabitacion,
+                                        perfil?.tiempoEstancia,
+                                        perfil?.fechaMudanza?.let { "Mudanza: $it" }
+                                    )
+                                )
+
+                                // Servicios deseados → CHIPs
+                                ChipSection(
+                                    title = "Servicios deseados",
+                                    items = perfil?.serviciosDeseados
+                                        ?.split(",")
+                                        ?.map { it.trim() }
+                                        ?: emptyList()
+                                )
+
+                                // Hábitos → CHIPs (si quieres mostrar)
+                                ChipSection(
+                                    title = "Hábitos",
+                                    items = perfil?.habitos
+                                        ?.split(",")
+                                        ?.map { it.trim() }
+                                        ?: emptyList()
+                                )
+
+                                // Otros
+                                ChipSection(
+                                    title = "Otros",
+                                    items = listOf(
+                                        if (perfil?.mascota == true) "Mascota" else "Sin mascota",
+                                        if (perfil?.fuma == true) "Fuma" else "No fuma",
+                                        if (perfil?.alergico == true) "Alergia: ${perfil.detalleAlergia}" else null
+                                    )
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+/* -------------------- BUSCO CASA - PANTALLA PRINCIPAL -------------------- */
+@Composable
+fun HomeBuscoCasaScreen(
+    state: PerfilUIState,
+    swipeDirection: SwipeDirection,
+    animationKey: Int,
+    onDescriptionClick: () -> Unit,
+    onProfileClick: () -> Unit,
+    onNext: () -> Unit,
+    onBack: () -> Unit,
+    onLike: () -> Unit,
+    onReject: () -> Unit
+) {
+    RoomieMatchUTheme {
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(Color(0xFFD2D0D0))
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(horizontal = 16.dp)
+                    .padding(bottom = 16.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                TopBar(onProfileClick = onProfileClick)
+
+                // Animación
+                PerfilCardAnimated(
+                    state = state,
+                    swipeDirection = swipeDirection,
+                    animationKey = animationKey,
+                    modifier = Modifier.fillMaxWidth(),
+                    contentPerfil = { perfil ->
+                        HomeBuscoCasaCard(perfil, onDescriptionClick)
+                    },
+                    contentLoading = {
+                        CircularProgressIndicator()
+                    },
+                    contentEmpty = {
+                        NoMoreProfilesScreen()
+                    },
+                    onAnimationEnd = { onNext() }
+                )
+
+                Spacer(Modifier.height(40.dp))
+
+                BottomControls(onBack, onLike, onReject)
+            }
+        }
+    }
+}
+
+@Composable
+fun HomeBuscoCasaCard(
+    perfil: PerfilResponse,
+    onDescriptionClick: () -> Unit
+) {
+    val edad = calculateAgeFromIso(perfil.fechaNacimiento)
+    val screenHeight = LocalConfiguration.current.screenHeightDp.dp
+    val imageHeight = (screenHeight * 0.55f).coerceIn(350.dp, 600.dp)
+
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 8.dp)
+    ) {
+        // CARD COMPLETA
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(30.dp))
+                .background(Color(0xFFD2D0D0))
+                .border(
+                    width = 4.dp,
+                    color = MaterialTheme.colorScheme.primary,
+                    shape = RoundedCornerShape(30.dp)
+                )
+        ) {
+
+            // CARRUSEL
+            ImageCarouselUrl(
+                images = perfil.fotosResidenciaUrls ?: emptyList(),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(imageHeight)
+                    .clip(RoundedCornerShape(topStart = 26.dp, topEnd = 26.dp))
+            )
+
+            // INFO
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .background(Color(0xFFD2D0D0))
+                    .padding(16.dp)
+                    .clickable { onDescriptionClick() }
+            ) {
+                Text(
+                    "${perfil.usuario}, $edad",
+                    style = MaterialTheme.typography.headlineLarge,
+                    color = MaterialTheme.colorScheme.primary
+                )
+                Text(
+                    perfil.barrio ?: "Barrio desconocido",
+                    style = MaterialTheme.typography.headlineMedium,
+                    color = MaterialTheme.colorScheme.primary
+                )
+                Text(
+                    perfil.descripcionLibre ?: "",
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = MaterialTheme.colorScheme.primary
+                )
+            }
+        }
+
+        // ⭐ FOTO DE PERFIL SUPERPUESTA SOBRE EL CARRUSEL
+        Box(
+            modifier = Modifier
+                .size(120.dp)
+                .align(Alignment.BottomEnd)
+                .offset(x = (-10).dp, y = (-75).dp)
+        ) {
+            AsyncImage(
+                model = perfil.fotoPerfil,
+                contentDescription = null,
+                modifier = Modifier
+                    .fillMaxSize() // clave para que llene el círculo
+                    .clip(CircleShape)
+                    .border(4.dp, MaterialTheme.colorScheme.primary, CircleShape),
+                contentScale = ContentScale.Crop
+            )
+        }
+    }
+}
+
+/* -------------------- BUSCO CASA - DESCRIPCIÓN -------------------- */
+@Composable
+fun DescriptionBuscoCasaScreen(
+    perfil: PerfilResponse?,
+    onBackClick: () -> Unit
+) {
+    RoomieMatchUTheme {
+
+        val edad = calculateAgeFromIso(perfil?.fechaNacimiento)
+        val imageUrls = perfil?.fotosResidenciaUrls ?: listOfNotNull(perfil?.fotoPerfil)
+
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(Color(0xFFD2D0D0))
+        ) {
+            Column {
+                Spacer(Modifier.height(24.dp))
+                DetailHeader(onBackClick = onBackClick)
+
+                Column(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .verticalScroll(rememberScrollState())
+                        .padding(top = 16.dp, start = 24.dp, end = 24.dp, bottom = 24.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(30.dp))
+                            .background(Color(0xFFD2D0D0))
+                            .border(
+                                3.dp,
+                                MaterialTheme.colorScheme.primary,
+                                RoundedCornerShape(30.dp)
+                            )
+                    ) {
+                        Column {
+                            ImageCarouselUrl(
+                                images = imageUrls,
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(340.dp)
+                                    .clip(RoundedCornerShape(topStart = 30.dp, topEnd = 30.dp))
+                            )
+
+                            Column(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .background(Color(0xFFD2D0D0))
+                                    .padding(20.dp)
+                            ) {
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    AsyncImage(
+                                        model = perfil?.fotoPerfil,
+                                        contentDescription = null,
+                                        modifier = Modifier
+                                            .size(80.dp)
+                                            .clip(CircleShape)
+                                            .border(
+                                                3.dp,
+                                                MaterialTheme.colorScheme.primary,
+                                                CircleShape
+                                            ),
+                                        contentScale = ContentScale.Crop
+                                    )
+
+                                    Spacer(Modifier.width(16.dp))
+
+                                    Column {
+                                        Text(
+                                            "${perfil?.usuario ?: "-"}, ${edad ?: "--"}",
+                                            style = MaterialTheme.typography.headlineLarge,
+                                            color = MaterialTheme.colorScheme.primary
+                                        )
+                                        Text(
+                                            perfil?.barrio ?: "-",
+                                            style = MaterialTheme.typography.bodyLarge
+                                        )
+                                    }
+                                }
+
+                                Spacer(Modifier.height(20.dp))
+
+                                ChipSection(
+                                    title = "Detalles del lugar",
+                                    items = listOf(
+                                        perfil?.arriendo?.let { "Arriendo: $$it" },
+                                        perfil?.cantidadHabitaciones?.let { "Habitaciones: $it" },
+                                        perfil?.maxRoomies?.let { "Máx. roomies: $it" }
+                                    )
+                                )
+
+                                ChipSection(
+                                    title = "Reglas de convivencia",
+                                    items = perfil?.reglasConvivencia
+                                        ?.split(",")
+                                        ?.map { it.trim() }
+                                        ?: emptyList()
+                                )
+
+                                ChipSection(
+                                    title = "Servicios incluidos",
+                                    items = perfil?.serviciosIncluidos
+                                        ?.split(",")
+                                        ?.map { it.trim() }
+                                        ?: emptyList()
+                                )
+
+                                ChipSection(
+                                    title = "Otros",
+                                    items = listOf(
+                                        if (perfil?.mascota == true) "Mascota" else "Sin mascota",
+                                        if (perfil?.fuma == true) "Fuma" else "No fuma",
+                                        if (perfil?.alergico == true) "Alergia: ${perfil.detalleAlergia}" else null
+                                    )
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+/* ---------- Reutilizables ---------- */
+
 @Composable
 fun SectionHeader(title: String) {
     Text(
@@ -789,7 +848,7 @@ fun Chip(text: String) {
 
 @Composable
 fun ChipSection(title: String, items: List<String?>) {
-    val filtered = items.filterNotNull()
+    val filtered = items.filterNotNull().filter { it.isNotBlank() }
     if (filtered.isNotEmpty()) {
         SectionHeader(title)
         FlowRow(
@@ -810,19 +869,24 @@ fun DetailHeader(onBackClick: () -> Unit) {
         modifier = Modifier
             .fillMaxWidth()
             .background(Color(0xFFD2D0D0))
-            .padding(top = 24.dp, bottom = 12.dp)
-            .zIndex(2f),
+            .padding(top = 24.dp, bottom = 12.dp),
         contentAlignment = Alignment.Center
     ) {
-        Image(
-            painter = painterResource(id = R.drawable.ic_atras_screens),
-            contentDescription = "Atrás",
+        // Usamos IconButton para asegurar hit-target y respuesta correcta al click
+        IconButton(
+            onClick = onBackClick,
             modifier = Modifier
-                .size(50.dp)
+                .size(56.dp)
                 .align(Alignment.CenterStart)
-                .clickable { onBackClick() }
-                .padding(start = 16.dp)
-        )
+                .padding(start = 8.dp)
+        ) {
+            Icon(
+                painter = painterResource(id = R.drawable.ic_atras_screens),
+                contentDescription = "Atrás",
+                tint = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.size(32.dp)
+            )
+        }
 
         Text(
             text = "ROOMIE\nMATCH U",
@@ -850,21 +914,21 @@ fun BottomControls(onBack: () -> Unit, onLike: () -> Unit, onReject: () -> Unit)
             contentDescription = "Atrás",
             modifier = Modifier
                 .size(iconSize)
-                .clickable { onBack() }
+                .clickable(role = Role.Button) { onBack() }
         )
         Image(
             painter = painterResource(id = R.drawable.ic_aceptar),
             contentDescription = "Aceptar",
             modifier = Modifier
                 .size(iconSize)
-                .clickable { onLike() }
+                .clickable(role = Role.Button) { onLike() }
         )
         Image(
             painter = painterResource(id = R.drawable.ic_rechazar),
             contentDescription = "Rechazar",
             modifier = Modifier
                 .size(iconSize)
-                .clickable { onReject() }
+                .clickable(role = Role.Button) { onReject() }
         )
     }
 }
@@ -873,94 +937,17 @@ fun BottomControls(onBack: () -> Unit, onLike: () -> Unit, onReject: () -> Unit)
 fun NoMoreProfilesScreen() {
     Box(
         modifier = Modifier
-            .fillMaxSize()
+            .fillMaxWidth()
+            .height(300.dp)   // Altura razonable, no bloquea botones
             .background(Color(0xFFD2D0D0)),
         contentAlignment = Alignment.Center
     ) {
         Text(
             text = "No hay más perfiles 🥲",
             style = MaterialTheme.typography.headlineMedium,
-            color = MaterialTheme.colorScheme.primary
+            color = MaterialTheme.colorScheme.primary,
+            textAlign = TextAlign.Center,
+            modifier = Modifier.padding(horizontal = 24.dp)
         )
     }
 }
-
-@Composable
-fun CircleIconButton(icon: androidx.compose.ui.graphics.vector.ImageVector, color: Color) {
-    Box(
-        modifier = Modifier
-            .size(60.dp)
-            .clip(CircleShape)
-            .background(color)
-            .clickable { },
-        contentAlignment = Alignment.Center
-    ) {
-        Icon(icon, contentDescription = null, tint = Color.White, modifier = Modifier.size(28.dp))
-    }
-}
-
-@Composable
-fun SectionTitle(text: String) {
-    Text(
-        text = text,
-        style = MaterialTheme.typography.headlineMedium,
-        modifier = Modifier.padding(top = 12.dp, bottom = 4.dp)
-    )
-}
-
-/*
-@Composable
-fun PerfilChipRow(items: List<String>) {
-    FlowRow(
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
-        verticalArrangement = Arrangement.spacedBy(8.dp)
-    ) {
-        items.forEach { label ->
-            Box(
-                modifier = Modifier
-                    .clip(RoundedCornerShape(50))
-                    .background(MaterialTheme.colorScheme.surface)
-                    .padding(horizontal = 12.dp, vertical = 6.dp)
-            ) {
-                Text(label, style = MaterialTheme.typography.bodyLarge)
-            }
-        }
-    }
-}
-
- */
-
-/*
-@Preview(showBackground = true, showSystemUi = true, device = "spec:width=411dp,height=891dp,dpi=420")
-@Composable
-fun PreviewTengoCasaHome() {
-    RoomieMatchUTheme {
-        HomeTengoCasaScreen(onDescriptionClick = {})
-    }
-}
-
-@Preview(showBackground = true, showSystemUi = true, device = "spec:width=410dp,height=860dp,dpi=420")
-@Composable
-fun PreviewTengoCasaDescripcion() {
-    RoomieMatchUTheme {
-        DescriptionTengoCasaScreen(onBackClick = {})
-    }
-}
-
-@Preview(showBackground = true, showSystemUi = true, device = "spec:width=411dp,height=1000dp,dpi=420")
-@Composable
-fun PreviewBuscoCasaHome() {
-    RoomieMatchUTheme {
-        HomeBuscoCasaScreen(onDescriptionClick = {})
-    }
-}
-
-@Preview(showBackground = true, showSystemUi = true, device = "spec:width=411dp,height=891dp,dpi=420")
-@Composable
-fun PreviewBuscoCasaDescripcion() {
-    RoomieMatchUTheme {
-        DescriptionBuscoCasaScreen()
-    }
-}
-
- */
