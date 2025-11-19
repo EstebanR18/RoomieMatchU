@@ -35,6 +35,8 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -42,6 +44,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -68,6 +71,23 @@ import com.example.approomiematchu.util.calculateAgeFromIso
 import com.example.approomiematchu.viewmodel.HomeViewModel
 import com.example.approomiematchu.viewmodel.MatchViewModel
 import com.example.approomiematchu.viewmodel.SwipeDirection
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.launch
+
+@Composable
+fun rememberNotification(): Triple<SnackbarHostState, CoroutineScope, suspend (String) -> Unit> {
+    val hostState = remember { SnackbarHostState() }
+    val scope = rememberCoroutineScope()
+
+    val show: suspend (String) -> Unit = { msg ->
+        hostState.showSnackbar(
+            message = msg,
+            withDismissAction = true
+        )
+    }
+
+    return Triple(hostState, scope, show)
+}
 
 @Composable
 fun HomeScreen(
@@ -335,6 +355,8 @@ fun HomeTengoCasaScreen(
 
     RoomieMatchUTheme {
 
+        val (snackbarHost, scope, notify) = rememberNotification()
+
         Box(
             modifier = Modifier
                 .fillMaxSize()
@@ -368,8 +390,36 @@ fun HomeTengoCasaScreen(
 
                 Spacer(Modifier.height(40.dp))
 
-                BottomControls(onBack, onLike, onReject)
+                BottomControls(
+                    onBack = {
+                        scope.launch {
+                            notify("↩️ Volviste al perfil anterior")
+                        }
+                        onBack()
+                    },
+                    onLike = {
+                        scope.launch {
+                            notify("✨ ¡Solicitud enviada! Tu interés ha sido registrado.")
+                        }
+                        onLike()
+                    },
+                    onReject = {
+                        scope.launch {
+                            notify("⛔ Perfil descartado. Buscando mejores opciones…")
+                        }
+                        onReject()
+                    }
+                )
+
             }
+
+            SnackbarHost(
+                hostState = snackbarHost,
+                modifier = Modifier
+                    .align(Alignment.BottomCenter)
+                    .padding(bottom = 24.dp)
+            )
+
         }
     }
 }
@@ -569,6 +619,9 @@ fun HomeBuscoCasaScreen(
     onReject: () -> Unit
 ) {
     RoomieMatchUTheme {
+
+        val (snackbarHost, scope, notify) = rememberNotification()
+
         Box(
             modifier = Modifier
                 .fillMaxSize()
@@ -603,8 +656,36 @@ fun HomeBuscoCasaScreen(
 
                 Spacer(Modifier.height(40.dp))
 
-                BottomControls(onBack, onLike, onReject)
+                BottomControls(
+                    onBack = {
+                        scope.launch {
+                            notify("↩️ Volviste al perfil anterior")
+                        }
+                        onBack()
+                    },
+                    onLike = {
+                        scope.launch {
+                            notify("✨ ¡Solicitud enviada! Tu interés ha sido registrado.")
+                        }
+                        onLike()
+                    },
+                    onReject = {
+                        scope.launch {
+                            notify("⛔ Perfil descartado. Buscando mejores opciones…")
+                        }
+                        onReject()
+                    }
+                )
+
             }
+
+            SnackbarHost(
+                hostState = snackbarHost,
+                modifier = Modifier
+                    .align(Alignment.BottomCenter)
+                    .padding(bottom = 24.dp)
+            )
+
         }
     }
 }
