@@ -27,7 +27,9 @@ sealed class AppScreens(val route: String) {
     object CuestionarioCompletado : AppScreens("cuestionario_completado")
 
     // ----------- PRINCIPAL -----------
-    object HomeScreen : AppScreens("home_screen")
+    object HomeScreen : AppScreens("home?reload={reload}") {
+        fun createRoute(reload: Boolean) = "home?reload=$reload"
+    }
 
     // ----------- PERFILES -----------
     object PerfilBuscoLugar : AppScreens("perfil_busco_lugar")

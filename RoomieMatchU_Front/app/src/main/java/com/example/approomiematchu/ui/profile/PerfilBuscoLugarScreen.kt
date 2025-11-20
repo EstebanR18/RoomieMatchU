@@ -497,6 +497,7 @@ fun PerfilEditarScreenBuscoLugar(
         scope.launch {
             try {
                 viewModel.editarPerfilBusco(
+                    userProfile = userProfile,
                     onSuccess = {
                         homeViewModel.loadUserProfile(userId)
                         isSaving = false
@@ -917,6 +918,7 @@ fun PerfilEditarScreenBuscoLugar(
                                     }
                                 )
                             } else {
+                                viewModel.actualizarFotoPerfil(userProfile?.fotoPerfil ?: "")
                                 editarPerfilDespuesDeFoto(userId)
                             }
                         } catch (e: Exception) {

@@ -91,6 +91,7 @@ fun rememberNotification(): Triple<SnackbarHostState, CoroutineScope, suspend (S
 
 @Composable
 fun HomeScreen(
+    reloadFlag: Boolean,
     navController: NavController,
     homeViewModel: HomeViewModel,
     matchViewModel: MatchViewModel,
@@ -109,6 +110,13 @@ fun HomeScreen(
             }
         }
         return
+    }
+
+    LaunchedEffect(reloadFlag) {
+        if (reloadFlag) {
+            homeViewModel.loadUserProfile(userId)
+            matchViewModel.cargarPerfiles(userId)
+        }
     }
 
     // Loading

@@ -764,6 +764,8 @@ fun PerfilEditarScreenTengoLugar(
                                     },
                                     onError = { msg -> Log.e("PerfilEditar", msg) }
                                 )
+                            } else {
+                                viewModel.actualizarFotoPerfil(userProfile?.fotoPerfil ?: "")
                             }
 
                             // 3️⃣ Subir fotos de residencia nuevas

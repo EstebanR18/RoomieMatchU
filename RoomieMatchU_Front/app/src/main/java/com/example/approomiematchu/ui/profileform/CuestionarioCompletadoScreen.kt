@@ -197,7 +197,8 @@ private fun enviarFormularioCompleto(
                 },
                 onError = { error ->
                     Log.e("PerfilEnvio", "❌ Error al crear perfil TENGO_LUGAR: $error")
-                    Toast.makeText(context, "Error al enviar perfil: $error", Toast.LENGTH_LONG).show()
+                    Toast.makeText(context, "Error al enviar perfil: $error", Toast.LENGTH_LONG)
+                        .show()
                 }
             )
         }
@@ -214,7 +215,8 @@ private fun enviarFormularioCompleto(
                 },
                 onError = { error ->
                     Log.e("PerfilEnvio", "❌ Error al crear perfil BUSCO_LUGAR: $error")
-                    Toast.makeText(context, "Error al enviar perfil: $error", Toast.LENGTH_LONG).show()
+                    Toast.makeText(context, "Error al enviar perfil: $error", Toast.LENGTH_LONG)
+                        .show()
                 }
             )
         }
@@ -290,7 +292,10 @@ private fun finalizarEnvio(
 ) {
     Toast.makeText(context, "Perfil enviado correctamente", Toast.LENGTH_SHORT).show()
     Log.d("PerfilEnvio", "🎉 Envío completo: perfil + fotos + foto de perfil.")
-    NavigationUtils.navigateAndClear(navController, AppScreens.HomeScreen.route)
+    NavigationUtils.navigateAndClear(
+        navController,
+        AppScreens.HomeScreen.createRoute(true)
+    )
 }
 
 

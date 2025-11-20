@@ -85,7 +85,11 @@ fun AppNavigation(modifier: Modifier = Modifier) {
             arguments = listOf(navArgument("startInLogin") { type = NavType.BoolType })
         ) { backStackEntry ->
             val startInLogin = backStackEntry.arguments?.getBoolean("startInLogin") ?: true
-            AuthScreen(initialIsLogin = startInLogin, navController = navController, authViewModel = authViewModel)
+            AuthScreen(
+                initialIsLogin = startInLogin,
+                navController = navController,
+                authViewModel = authViewModel
+            )
         }
 
         composable(AppScreens.EnterEmail.route) {
@@ -106,35 +110,60 @@ fun AppNavigation(modifier: Modifier = Modifier) {
         }
 
         composable(AppScreens.CuestionarioRol.route) {
-            CuestionarioRolScreen(navController = navController, viewModel = perfilCuestionarioViewModel)
+            CuestionarioRolScreen(
+                navController = navController,
+                viewModel = perfilCuestionarioViewModel
+            )
         }
 
         composable(AppScreens.Cuestionario1.route) {
-            Cuestionario1Screen(navController = navController, viewModel = perfilCuestionarioViewModel, authViewModel = authViewModel)
+            Cuestionario1Screen(
+                navController = navController,
+                viewModel = perfilCuestionarioViewModel,
+                authViewModel = authViewModel
+            )
         }
 
         composable(AppScreens.Cuestionario2.route) {
-            Cuestionario2Screen(navController = navController, viewModel = perfilCuestionarioViewModel)
+            Cuestionario2Screen(
+                navController = navController,
+                viewModel = perfilCuestionarioViewModel
+            )
         }
 
         composable(AppScreens.Cuestionario3.route) {
-            Cuestionario3Screen(navController = navController, viewModel = perfilCuestionarioViewModel)
+            Cuestionario3Screen(
+                navController = navController,
+                viewModel = perfilCuestionarioViewModel
+            )
         }
 
         composable(AppScreens.CuestionarioBuscoCasa.route) {
-            CuestionarioBuscoCasaScreen(navController = navController, viewModel = perfilCuestionarioViewModel)
+            CuestionarioBuscoCasaScreen(
+                navController = navController,
+                viewModel = perfilCuestionarioViewModel
+            )
         }
 
         composable(AppScreens.CuestionarioTengoCasa.route) {
-            CuestionarioTengoCasaScreen(navController = navController, viewModel = perfilCuestionarioViewModel)
+            CuestionarioTengoCasaScreen(
+                navController = navController,
+                viewModel = perfilCuestionarioViewModel
+            )
         }
 
         composable(AppScreens.CuestionarioFotoPerfil.route) {
-            CuestionarioFotoPerfilScreen(navController = navController, viewModel = perfilCuestionarioViewModel)
+            CuestionarioFotoPerfilScreen(
+                navController = navController,
+                viewModel = perfilCuestionarioViewModel
+            )
         }
 
         composable(AppScreens.CuestionarioFotoCasa.route) {
-            CuestionarioFotoCasaScreen(navController = navController, viewModel = perfilCuestionarioViewModel)
+            CuestionarioFotoCasaScreen(
+                navController = navController,
+                viewModel = perfilCuestionarioViewModel
+            )
         }
 
         composable(AppScreens.SubirFotos.route) {
@@ -142,12 +171,22 @@ fun AppNavigation(modifier: Modifier = Modifier) {
         }
 
         composable(AppScreens.CuestionarioCompletado.route) {
-            CuestionarioCompletadoScreen(navController = navController, viewModel = perfilCuestionarioViewModel)
+            CuestionarioCompletadoScreen(
+                navController = navController,
+                viewModel = perfilCuestionarioViewModel
+            )
         }
 
         // ---------- PRINCIPAL ----------
-        composable(AppScreens.HomeScreen.route) {
+        composable(
+            route = "home?reload={reload}",
+            arguments = listOf(
+                navArgument("reload") { defaultValue = "false" }
+            )
+        ) { backStackEntry ->
+            val reload = backStackEntry.arguments?.getString("reload") ?: "false"
             HomeScreen(
+                reloadFlag = reload == "true",
                 navController = navController,
                 homeViewModel = homeViewModel,
                 matchViewModel = matchViewModel,

@@ -222,7 +222,10 @@ class PerfilCuestionarioViewModel(
 
                 val resp = api.crearPerfilTengoLugar(_state.value.userId, body)
                 val errorBody = resp.errorBody()?.string()
-                Log.d("PerfilEnvio", "📥 Respuesta: code=${resp.code()} body=${resp.body()} error=$errorBody")
+                Log.d(
+                    "PerfilEnvio",
+                    "📥 Respuesta: code=${resp.code()} body=${resp.body()} error=$errorBody"
+                )
 
                 if (resp.isSuccessful) {
                     onSuccess()
@@ -252,7 +255,8 @@ class PerfilCuestionarioViewModel(
                 if (localUri != null) {
                     val file = uriToFile(context, localUri)
                     if (file != null && file.exists()) {
-                        val mimeType = context.contentResolver.getType(Uri.parse(localUri)) ?: "image/jpeg"
+                        val mimeType =
+                            context.contentResolver.getType(Uri.parse(localUri)) ?: "image/jpeg"
 
                         val requestFile = file.asRequestBody(mimeType.toMediaTypeOrNull())
                         val body = MultipartBody.Part.createFormData(
@@ -278,7 +282,11 @@ class PerfilCuestionarioViewModel(
                                 onError("El backend no devolvió una URL válida")
                             }
                         } else {
-                            onError("Error al subir foto: ${response.errorBody()?.string() ?: response.message()}")
+                            onError(
+                                "Error al subir foto: ${
+                                    response.errorBody()?.string() ?: response.message()
+                                }"
+                            )
                         }
                     } else {
                         onError("Archivo de imagen no encontrado")
@@ -295,7 +303,11 @@ class PerfilCuestionarioViewModel(
     }
 
 
-    fun subirFotosResidencia(files: List<File>, onSuccess: (List<String>) -> Unit, onError: (String) -> Unit) {
+    fun subirFotosResidencia(
+        files: List<File>,
+        onSuccess: (List<String>) -> Unit,
+        onError: (String) -> Unit
+    ) {
         viewModelScope.launch {
             try {
                 _state.value = _state.value.copy(isLoading = true)
@@ -339,11 +351,20 @@ class PerfilCuestionarioViewModel(
         _state.value = _state.value.copy(fotosResidencia = fotos)
     }
 
-    fun editarPerfilBusco(onSuccess: () -> Unit, onError: (String) -> Unit) {
+    fun editarPerfilBusco(
+        userProfile: PerfilResponse?, onSuccess: () -> Unit, onError: (String) -> Unit
+    ) {
         viewModelScope.launch {
             try {
+
+                val fotoFinal = if (!_state.value.fotoPerfilUrl.isNullOrEmpty()) {
+                    _state.value.fotoPerfilUrl
+                } else {
+                    userProfile?.fotoPerfil // Preservar la existente
+                }
+
                 val body = PerfilBuscoLugarRequest(
-                    fotoPerfil = _state.value.fotoPerfilUrl,
+                    fotoPerfil = fotoFinal,
                     fechaNacimiento = _state.value.fechaNacimiento,
                     presupuesto = _state.value.presupuesto ?: 0.0,
                     barrio = _state.value.barrio ?: "",
@@ -397,14 +418,20 @@ class PerfilCuestionarioViewModel(
                 }
 
                 // ✅ 2️⃣ Subir nuevas fotos de residencia si hay locales pendientes
-                val fotosLocales = _state.value.fotosResidencia.filter { it.startsWith("content://") }
-                var fotosFinales = _state.value.fotosResidencia.filterNot { it.startsWith("content://") }.toMutableList()
+                val fotosLocales =
+                    _state.value.fotosResidencia.filter { it.startsWith("content://") }
+                var fotosFinales =
+                    _state.value.fotosResidencia.filterNot { it.startsWith("content://") }
+                        .toMutableList()
 
                 if (fotosLocales.isNotEmpty()) {
                     val archivos = fotosLocales.mapNotNull { uriStr ->
                         uriToFile(context, uriStr)
                     }
-                    Log.d("PerfilEditar", "📤 Subiendo ${archivos.size} nuevas fotos de residencia...")
+                    Log.d(
+                        "PerfilEditar",
+                        "📤 Subiendo ${archivos.size} nuevas fotos de residencia..."
+                    )
                     val resp = api.subirFotosResidencia(_state.value.userId, archivos.map { file ->
                         val body = file.asRequestBody("image/*".toMediaTypeOrNull())
                         MultipartBody.Part.createFormData("files", file.name, body)
@@ -445,14 +472,20 @@ class PerfilCuestionarioViewModel(
 
                 // ✅ 4️⃣ Enviar actualización del perfil
                 val response = api.editarPerfilTengoLugar(_state.value.userId, body)
-                Log.d("PerfilEditar", "📥 Respuesta: code=${response.code()}, success=${response.isSuccessful}")
+                Log.d(
+                    "PerfilEditar",
+                    "📥 Respuesta: code=${response.code()}, success=${response.isSuccessful}"
+                )
 
                 if (response.isSuccessful) {
                     Log.d("PerfilEditar", "✅ Perfil actualizado correctamente en el backend")
                     onSuccess()
                 } else {
                     val errorBody = response.errorBody()?.string()
-                    Log.e("PerfilEditar", "❌ Error al actualizar: ${response.message()} - $errorBody")
+                    Log.e(
+                        "PerfilEditar",
+                        "❌ Error al actualizar: ${response.message()} - $errorBody"
+                    )
                     onError("Error ${response.code()}: ${response.message()} \n$errorBody")
                 }
             } catch (e: Exception) {
